@@ -1,8 +1,16 @@
-package com.equipment.application.dto;
+package com.equipament.application.dto;
 
-public record EquipamentRequest (
+import com.equipament.domain.enums.EquipmentUsage;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public record EquipamentRequest(
         String name,
         String description,
-        String serialNumber,
-        double price
-){ }
+        Long topo,
+        LocalDateTime dateHour,
+        EquipmentUsage usageType,
+        UUID proprietaryId,
+        List<PerPartRequest> perParts
+) { }

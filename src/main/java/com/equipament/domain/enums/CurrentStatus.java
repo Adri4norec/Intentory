@@ -1,4 +1,4 @@
-package com.equipment.domain.enums;
+package com.equipament.domain.enums;
 
 public enum CurrentStatus {
     DISPONIVEL,

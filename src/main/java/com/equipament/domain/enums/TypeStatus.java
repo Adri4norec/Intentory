@@ -1,6 +1,6 @@
 package com.equipament.domain.enums;
 
-public enum RequestStatus {
+public enum TypeStatus {
     PENDENTE,
     APROVADO,
     NEGADO,

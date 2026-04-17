@@ -1,4 +1,8 @@
 package com.equipament.application.dto;
 
-public record ProprietaryResponse() {
-}
+import java.util.UUID;
+
+public record ProprietaryResponse(
+        UUID id,
+        String name
+) {}

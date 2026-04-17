@@ -1,4 +1,6 @@
 package com.equipament.application.dto;
 
-public record PerPartRequest() {
-}
+public record PerPartRequest(
+        String name,
+        String serialNumber
+) {}

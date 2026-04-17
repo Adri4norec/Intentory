@@ -1,4 +1,11 @@
 package com.user.application.dto;
 
-public record UserResponse() {
-}
+import java.util.UUID;
+
+public record UserResponse(
+        UUID id,
+        String fullName,
+        String email,
+        String username,
+        String roleName
+) {}

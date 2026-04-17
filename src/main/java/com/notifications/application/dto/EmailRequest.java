@@ -1,4 +1,9 @@
 package com.notifications.application.dto;
 
-public record EmailRequest() {
-}
+import java.util.List;
+
+public record EmailRequest(
+        String subject,
+        String body,
+        List<String> recipients
+) { }

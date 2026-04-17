@@ -1,4 +1,9 @@
 package com.equipament.application.dto;
 
-public record PerPartResponse() {
-}
+import java.util.UUID;
+
+public record PerPartResponse(
+        UUID id,
+        String name,
+        String serialNumber
+) {}
