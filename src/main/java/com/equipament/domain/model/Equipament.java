@@ -1,0 +1,122 @@
+package com.equipament.domain.model;
+
+import com.equipament.domain.enums.EquipmentUsage;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Entity
+@Table(name = "tb_equipament")
+public class Equipament {
+
+    @Id
+    private UUID id;
+    private String name;
+    private String description;
+    private Long topo;
+    private LocalDateTime dateHour;
+
+    @Enumerated(EnumType.STRING)
+    private EquipmentUsage usageType;
+
+    private boolean active;
+
+    @ManyToOne
+    @JoinColumn(name = "proprietary_id", referencedColumnName = "id")
+    private Proprietary proprietary;
+
+    @OneToMany(mappedBy = "equipament", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PerPart> perParts = new HashSet<>();
+
+    @ElementCollection
+    @CollectionTable(name = "tb_equipament_images", joinColumns = @JoinColumn(name = "equipament_id"))
+    @Column(name = "image_url")
+    private Set<String> imageUrls = new HashSet<>();
+
+    @OneToOne(mappedBy = "equipament", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Status status;
+
+    protected Equipament() {}
+
+    public Equipament(
+            String name,
+            String description,
+            Long topo,
+            LocalDateTime dateHour,
+            EquipmentUsage usageType,
+            Proprietary proprietary
+    ) {
+        this.id = UUID.randomUUID();
+        this.name = name;
+        this.description = description;
+        this.topo = topo;
+        this.dateHour = dateHour != null ? dateHour : LocalDateTime.now();
+        this.usageType = usageType;
+        this.proprietary = proprietary;
+        this.active = true;
+    }
+
+    public void addImageUrl(String url) {
+        if (this.imageUrls == null) {
+            this.imageUrls = new HashSet<>();
+        }
+        this.imageUrls.add(url);
+    }
+
+    public void clearImageUrls() {
+        if (this.imageUrls != null) {
+            this.imageUrls.clear();
+        }
+    }
+
+    public void setInitialStatus(Status status) {
+        this.status = status;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void update(
+            String name,
+            String description,
+            Long topo,
+            EquipmentUsage usageType,
+            boolean active,
+            Proprietary proprietary
+    ) {
+        this.name = name;
+        this.description = description;
+        this.topo = topo;
+        this.usageType = usageType;
+        this.active = active;
+        this.proprietary = proprietary;
+    }
+
+    public void addPerPart(String name, String serialNumber) {
+        if (this.perParts == null) {
+            this.perParts = new HashSet<>();
+        }
+
+        PerPart newPart = new PerPart(name, serialNumber, this);
+        this.perParts.add(newPart);
+    }
+
+    public void clearPerParts() {
+        if (this.perParts != null) {
+            this.perParts.clear();
+        }
+    }
+
+    public UUID getId() { return id; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
+    public LocalDateTime getDateHour() { return dateHour; }
+    public EquipmentUsage getUsageType() { return usageType; }
+    public boolean isActive() { return active; }
+    public Proprietary getProprietary() { return proprietary; }
+    public Status getStatus() { return status; }
+    public Long getTopo() { return topo; }
+    public Set<String> getImageUrls() { return imageUrls; }
+    public Set<PerPart> getPerParts() { return perParts; }
+}
