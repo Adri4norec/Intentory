@@ -1,19 +1,17 @@
 package com.user.application.controller;
 
+import com.identity.domain.UserEntity;
 import com.user.application.dto.UserRequest;
 import com.user.application.dto.UserResponse;
 import com.user.application.mapper.UserMapper;
-import com.user.domain.model.User;
 import com.user.domain.services.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.identity.security.TokenService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -22,22 +20,27 @@ public class UserController {
 
     private final UserService service;
     private final UserMapper mapper;
+    private final TokenService tokenService;
 
-    public UserController(UserService service, UserMapper mapper) {
+    public UserController(UserService service, UserMapper mapper,  TokenService tokenService) {
         this.service = service;
         this.mapper = mapper;
+        this.tokenService = tokenService;
     }
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@RequestBody UserRequest request) {
-        User user = service.create(request);
+        UserEntity user = service.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@RequestBody UserRequest request) {
-        User user = service.login(request.username(), request.password());
-        return ResponseEntity.ok(mapper.toResponse(user));
+        UserEntity user = service.login(request.username(), request.password());
+
+        String token = tokenService.generateToken(user);
+
+        return ResponseEntity.ok(mapper.toResponse(user, token));
     }
 
     @GetMapping
@@ -48,7 +51,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getById(@PathVariable UUID id) {
-        User user = service.findById(id);
+        UserEntity user = service.findById(id);
         return ResponseEntity.ok(mapper.toResponse(user));
     }
 
@@ -56,7 +59,7 @@ public class UserController {
     @CrossOrigin(origins = "http://localhost:4200")
     public ResponseEntity<UserResponse> update(@PathVariable UUID id, @RequestBody UserRequest request) {
         // Seguindo o fluxo: Service atualiza -> Mapper converte -> Controller retorna OK
-        User user = service.update(id, request);
+        UserEntity user = service.update(id, request);
         return ResponseEntity.ok(mapper.toResponse(user));
     }
 
