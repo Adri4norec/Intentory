@@ -16,6 +16,9 @@ public class Equipament {
     private Long topo;
     private LocalDateTime dateHour;
 
+    @Column(name = "categoria")
+    private String categoria;
+
     @Enumerated(EnumType.STRING)
     private EquipmentUsage usageType;
 
@@ -50,6 +53,7 @@ public class Equipament {
         this.name = name;
         this.description = description;
         this.topo = topo;
+        this.categoria = categoria;
         this.dateHour = dateHour != null ? dateHour : LocalDateTime.now();
         this.usageType = usageType;
         this.proprietary = proprietary;
@@ -81,6 +85,7 @@ public class Equipament {
             String name,
             String description,
             Long topo,
+            String categoria,
             EquipmentUsage usageType,
             boolean active,
             Proprietary proprietary
@@ -88,6 +93,7 @@ public class Equipament {
         this.name = name;
         this.description = description;
         this.topo = topo;
+        this.categoria = categoria;
         this.usageType = usageType;
         this.active = active;
         this.proprietary = proprietary;
@@ -119,4 +125,6 @@ public class Equipament {
     public Long getTopo() { return topo; }
     public Set<String> getImageUrls() { return imageUrls; }
     public Set<PerPart> getPerParts() { return perParts; }
+    public String getCategoria() { return categoria; }
+    public void setCategoria(String categoria) { this.categoria = categoria;}
 }
