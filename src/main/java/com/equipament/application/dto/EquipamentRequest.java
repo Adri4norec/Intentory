@@ -9,6 +9,7 @@ public record EquipamentRequest(
         String name,
         String description,
         Long topo,
+        String categoria,
         LocalDateTime dateHour,
         EquipmentUsage usageType,
         UUID proprietaryId,

@@ -66,6 +66,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 request.usageType(),
                 proprietary
         );
+        equipment.setCategoria(request.categoria());
 
         if (request.perParts() != null) {
             request.perParts().forEach(partDto ->
@@ -88,6 +89,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 e.getName(),
                 e.getDescription(),
                 e.getTopo(),
+                e.getCategoria(),
                 e.getDateHour(),
                 e.getUsageType(),
                 e.isActive(),
@@ -121,11 +123,12 @@ public class EquipamentServiceImpl implements EquipamentService {
                 request.name(),
                 request.description(),
                 request.topo(),
+                request.categoria(),
                 request.usageType(),
                 true,
                 proprietary
         );
-
+        equipment.setCategoria(request.categoria());
         equipment.clearPerParts();
         if (request.perParts() != null) {
             request.perParts().forEach(partDto ->
