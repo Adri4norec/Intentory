@@ -17,4 +17,5 @@ public interface EquipamentService {
     Equipament update(UUID id, EquipamentRequest request);
     void delete(UUID id);
     public void uploadImages(UUID id, List<MultipartFile> files);
+    Page<EquipamentResponse> search(String term, Pageable pageable);
 }

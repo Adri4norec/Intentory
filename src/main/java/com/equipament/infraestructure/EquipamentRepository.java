@@ -50,4 +50,21 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
             @Param("disponivel") boolean disponivel,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT DISTINCT e FROM Equipament e
+        JOIN FETCH e.proprietary p
+        LEFT JOIN FETCH e.status s
+        LEFT JOIN FETCH s.statusType st
+        LEFT JOIN FETCH e.perParts pp
+        LEFT JOIN FETCH e.imageUrls iu
+        WHERE e.active = true
+    AND (
+        LOWER(e.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+        LOWER(e.categoria) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+        CAST(e.topo AS string) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+        )
+        ORDER BY e.name ASC
+    """)
+    Page<Equipament> searchEquipments(@Param("searchTerm") String searchTerm, Pageable pageable);
 }

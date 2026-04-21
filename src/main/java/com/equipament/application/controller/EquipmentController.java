@@ -77,4 +77,11 @@ public class EquipmentController {
 
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<EquipamentResponse>> search(@RequestParam String term, Pageable pageable
+    ) {
+        Page<EquipamentResponse> response = equipmentService.search(term, pageable);
+        return ResponseEntity.ok(response);
+    }
 }

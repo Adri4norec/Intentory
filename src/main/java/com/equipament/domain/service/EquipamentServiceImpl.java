@@ -175,4 +175,28 @@ public class EquipamentServiceImpl implements EquipamentService {
             throw new RuntimeException("Erro ao processar arquivos", e);
         }
     }
+
+    @Override
+    public Page<EquipamentResponse> search(String term, Pageable pageable) {
+        Page<Equipament> equipaments = repository.searchEquipments(term, pageable);
+
+        return equipaments.map(e -> new EquipamentResponse(
+                e.getId(),
+                e.getName(),
+                e.getDescription(),
+                e.getTopo(),
+                e.getCategoria(),
+                e.getDateHour(),
+                e.getUsageType(),
+                e.isActive(),
+                e.getProprietary().getName(),
+                (e.getStatus() != null && e.getStatus().getStatusType() != null)
+                        ? e.getStatus().getStatusType().getName()
+                        : "Sem Status",
+                e.getPerParts() != null ? e.getPerParts().stream()
+                        .map(part -> new PerPartResponse(part.getId(), part.getName(), part.getSerialNumber()))
+                        .collect(Collectors.toList()) : java.util.Set.of(),
+                e.getImageUrls()
+        ));
+    }
 }
