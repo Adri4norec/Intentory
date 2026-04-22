@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -196,6 +197,36 @@ public class EquipamentServiceImpl implements EquipamentService {
                 e.getPerParts() != null ? e.getPerParts().stream()
                         .map(part -> new PerPartResponse(part.getId(), part.getName(), part.getSerialNumber()))
                         .collect(Collectors.toList()) : java.util.Set.of(),
+                e.getImageUrls()
+        ));
+    }
+    @Override
+    public Page<EquipamentResponse> advancedSearch(String nome, String categoria, String tombo,
+                                                   String caracteristicas, String status,
+                                                   LocalDate dataInicio, LocalDate dataFim,
+                                                   Pageable pageable) {
+
+        // 1. Faz a busca no repositório passando todos os parâmetros
+        Page<Equipament> equipaments = repository.searchAdvanced(
+                nome, categoria, tombo, caracteristicas, status, dataInicio, dataFim, pageable);
+
+        // 2. Converte as entidades para o DTO de resposta mantendo o padrão do seu projeto
+        return equipaments.map(e -> new EquipamentResponse(
+                e.getId(),
+                e.getName(),
+                e.getDescription(),
+                e.getTopo(),
+                e.getCategoria(),
+                e.getDateHour(),
+                e.getUsageType(),
+                e.isActive(),
+                e.getProprietary().getName(),
+                (e.getStatus() != null && e.getStatus().getStatusType() != null)
+                        ? e.getStatus().getStatusType().getName()
+                        : "Sem Status",
+                e.getPerParts() != null ? e.getPerParts().stream()
+                                          .map(part -> new PerPartResponse(part.getId(), part.getName(), part.getSerialNumber()))
+                                          .collect(Collectors.toList()) : java.util.Set.of(),
                 e.getImageUrls()
         ));
     }

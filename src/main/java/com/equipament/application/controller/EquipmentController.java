@@ -14,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 import java.util.List;
 import java.util.UUID;
@@ -83,5 +85,22 @@ public class EquipmentController {
     ) {
         Page<EquipamentResponse> response = equipmentService.search(term, pageable);
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/advanced-search")
+    public ResponseEntity<Page<EquipamentResponse>> advancedSearch(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String tombo,
+            @RequestParam(required = false) String caracteristicas,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            Pageable pageable) {
+
+
+        Page<EquipamentResponse> responsePage = equipmentService.advancedSearch(
+                nome, categoria, tombo, caracteristicas, status, dataInicio, dataFim, pageable);
+
+        return ResponseEntity.ok(responsePage);
     }
 }

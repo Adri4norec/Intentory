@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 public interface EquipamentService {
     Equipament save(EquipamentRequest request);
@@ -18,4 +19,9 @@ public interface EquipamentService {
     void delete(UUID id);
     public void uploadImages(UUID id, List<MultipartFile> files);
     Page<EquipamentResponse> search(String term, Pageable pageable);
+
+    Page<EquipamentResponse> advancedSearch(String nome, String categoria, String tombo,
+                                            String caracteristicas, String status,
+                                            LocalDate dataInicio, LocalDate dataFim,
+                                            Pageable pageable);
 }
