@@ -69,19 +69,36 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
     """)
     Page<Equipament> searchEquipments(@Param("searchTerm") String searchTerm, Pageable pageable);
 
+// ... seus imports e métodos anteriores (existsByTopo, findDetailById, etc) ...
+
     @Query(value = """
-    SELECT DISTINCT e FROM Equipament e
-    JOIN FETCH e.proprietary p
-    LEFT JOIN FETCH e.status s
-    LEFT JOIN FETCH s.statusType st
-    WHERE (:nome IS NULL OR :nome = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%'))) 
-    AND (:categoria IS NULL OR :categoria = '' OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%'))) 
-    AND (:tombo IS NULL OR :tombo = '' OR CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%')) 
-    AND (:caracteristicas IS NULL OR :caracteristicas = '' OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%'))) 
-    AND (:status IS NULL OR :status = '' OR st.name = :status) 
-    AND (:dataInicio IS NULL OR CAST(e.dateHour AS date) >= :dataInicio) 
-    AND (:dataFim IS NULL OR CAST(e.dateHour AS date) <= :dataFim)
-""")
+        SELECT DISTINCT e FROM Equipament e
+        JOIN FETCH e.proprietary p
+        LEFT JOIN FETCH e.status s
+        LEFT JOIN FETCH s.statusType st
+        LEFT JOIN FETCH e.imageUrls iu
+        WHERE (e.active = true)
+        AND (:nome IS NULL OR :nome = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%'))) 
+        AND (:categoria IS NULL OR :categoria = '' OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%'))) 
+        AND (:tombo IS NULL OR :tombo = '' OR CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%')) 
+        AND (:caracteristicas IS NULL OR :caracteristicas = '' OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%'))) 
+        AND (:status IS NULL OR :status = '' OR st.name = :status) 
+        AND (CAST(:dataInicio AS date) IS NULL OR CAST(e.dateHour AS date) >= :dataInicio) 
+        AND (CAST(:dataFim AS date) IS NULL OR CAST(e.dateHour AS date) <= :dataFim)
+    """,
+            countQuery = """
+        SELECT count(DISTINCT e) FROM Equipament e 
+        LEFT JOIN e.status s 
+        LEFT JOIN s.statusType st 
+        WHERE (e.active = true)
+        AND (:nome IS NULL OR :nome = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%'))) 
+        AND (:categoria IS NULL OR :categoria = '' OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%'))) 
+        AND (:tombo IS NULL OR :tombo = '' OR CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%')) 
+        AND (:caracteristicas IS NULL OR :caracteristicas = '' OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%'))) 
+        AND (:status IS NULL OR :status = '' OR st.name = :status) 
+        AND (CAST(:dataInicio AS date) IS NULL OR CAST(e.dateHour AS date) >= :dataInicio) 
+        AND (CAST(:dataFim AS date) IS NULL OR CAST(e.dateHour AS date) <= :dataFim)
+    """)
     Page<Equipament> searchAdvanced(
             @Param("nome") String nome,
             @Param("categoria") String categoria,
@@ -89,5 +106,6 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
             @Param("caracteristicas") String caracteristicas,
             @Param("status") String status,
             @Param("dataInicio") LocalDate dataInicio,
-            @Param("dataFim") LocalDate dataFim, Pageable pageable);
+            @Param("dataFim") LocalDate dataFim,
+            Pageable pageable);
 }

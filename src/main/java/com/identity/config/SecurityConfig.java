@@ -33,11 +33,7 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers("/v3/api-docs/**")
-                .requestMatchers("/swagger-ui/**")
-                .requestMatchers("/swagger-ui.html")
-                .requestMatchers("/swagger-resources/**")
-                .requestMatchers("/webjars/**");
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**");
     }
 
     @Bean
@@ -50,19 +46,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // Libera a rota e sub-rotas de equipamentos
+                        // O SEGREDO: Libera TODAS as rotas e sub-rotas de equipamentos para quem estiver logado
                         .requestMatchers("/api/v1/equipments/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(customConverter())) // Conexão do conversor
+                        // OBRIGATÓRIO: Avisa o Spring para ler as 'roles' do seu token
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(customConverter()))
                 );
 
         return http.build();
     }
+
     private Converter<Jwt, AbstractAuthenticationToken> customConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthorityPrefix("ROLE_");
