@@ -10,6 +10,7 @@ public record EquipamentResponse(
         String name,
         String description,
         Long topo,
+        String codigo,
         String categoria,
         LocalDateTime dateHour,
         EquipmentUsage usageType,

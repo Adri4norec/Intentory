@@ -99,6 +99,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 e.getName(),
                 e.getDescription(),
                 e.getTopo(),
+                e.getCodigo(),
                 e.getCategoria(),
                 e.getDateHour(),
                 e.getUsageType(),
@@ -207,6 +208,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 e.getName(),
                 e.getDescription(),
                 e.getTopo(),
+                e.getCodigo(),
                 e.getCategoria(),
                 e.getDateHour(),
                 e.getUsageType(),
@@ -234,6 +236,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 e.getName(),
                 e.getDescription(),
                 e.getTopo(),
+                e.getCodigo(),
                 e.getCategoria(),
                 e.getDateHour(),
                 e.getUsageType(),
@@ -251,8 +254,12 @@ public class EquipamentServiceImpl implements EquipamentService {
         String codigoGerado;
         Random random = new Random();
         do {
+            // Gera o número aleatório
             int numero = random.nextInt(999) + 1;
-            codigoGerado = String.format("%03d", numero);
+
+            // Formata com o prefixo 'C' e 3 dígitos (ex: C001, C015, C123)
+            codigoGerado = String.format("C%03d", numero);
+
         } while (repository.existsByCodigo(codigoGerado));
 
         return codigoGerado;
