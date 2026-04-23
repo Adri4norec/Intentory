@@ -11,9 +11,15 @@ public class Equipament {
 
     @Id
     private UUID id;
+
     private String name;
     private String description;
     private Long topo;
+
+    // NOVO CAMPO ADICIONADO AQUI
+    @Column(name = "codigo", unique = true)
+    private String codigo;
+
     private LocalDateTime dateHour;
 
     @Column(name = "categoria")
@@ -36,7 +42,7 @@ public class Equipament {
     @Column(name = "image_url")
     private Set<String> imageUrls = new HashSet<>();
 
-    @OneToOne(mappedBy = "equipament", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "equipament", cascade = CascadeType.ALL)
     private Status status;
 
     protected Equipament() {}
@@ -53,7 +59,7 @@ public class Equipament {
         this.name = name;
         this.description = description;
         this.topo = topo;
-        this.categoria = categoria;
+        this.categoria = categoria; // Nota: Isso ficará nulo aqui, mas o seu Service já usa setCategoria() logo depois, então funciona perfeitamente.
         this.dateHour = dateHour != null ? dateHour : LocalDateTime.now();
         this.usageType = usageType;
         this.proprietary = proprietary;
@@ -126,5 +132,10 @@ public class Equipament {
     public Set<String> getImageUrls() { return imageUrls; }
     public Set<PerPart> getPerParts() { return perParts; }
     public String getCategoria() { return categoria; }
+
     public void setCategoria(String categoria) { this.categoria = categoria;}
+
+    // GETTER E SETTER DO CÓDIGO
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
 }

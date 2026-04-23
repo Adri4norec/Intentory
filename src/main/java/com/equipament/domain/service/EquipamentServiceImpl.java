@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,15 +50,11 @@ public class EquipamentServiceImpl implements EquipamentService {
     @Override
     @Transactional
     public Equipament save(EquipamentRequest request) {
-        if (repository.existsByTopo(request.topo())) {
-            throw new RuntimeException("Já existe um registro com esse número de tombo");
-        }
-
         Proprietary proprietary = proprietaryRepository.findById(request.proprietaryId())
                 .orElseThrow(() -> new RuntimeException("Proprietary not found with ID: " + request.proprietaryId()));
 
-        StatusType type = statusTypeRepository.findByName("Disponível")
-                .orElseThrow(() -> new RuntimeException("Status 'Disponível' not found in database."));
+        StatusType type = statusTypeRepository.findByName("DISPONIVEL")
+                .orElseThrow(() -> new RuntimeException("Status 'DISPONIVEL' not found in database."));
 
         Equipament equipment = new Equipament(
                 request.name(),
@@ -68,6 +65,18 @@ public class EquipamentServiceImpl implements EquipamentService {
                 proprietary
         );
         equipment.setCategoria(request.categoria());
+
+        // Lógica de Geração e Validação do Código
+        String codigoDefinitivo;
+        if (request.topo() != null) {
+            codigoDefinitivo = request.topo().toString();
+            if (repository.existsByCodigo(codigoDefinitivo)) {
+                throw new RuntimeException("Já existe um registro com esse número de tombo/código");
+            }
+        } else {
+            codigoDefinitivo = gerarCodigoUnico();
+        }
+        equipment.setCodigo(codigoDefinitivo);
 
         if (request.perParts() != null) {
             request.perParts().forEach(partDto ->
@@ -98,9 +107,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 (e.getStatus() != null && e.getStatus().getStatusType() != null)
                         ? e.getStatus().getStatusType().getName()
                         : "Sem Status",
-                e.getPerParts() != null ? e.getPerParts().stream()
-                        .map(part -> new PerPartResponse(part.getId(), part.getName(), part.getSerialNumber()))
-                        .collect(Collectors.toList()) : java.util.Set.of(),
+                java.util.Set.of(), // Blindagem contra LazyInitializationException na listagem
                 e.getImageUrls()
         ));
     }
@@ -120,6 +127,19 @@ public class EquipamentServiceImpl implements EquipamentService {
         Proprietary proprietary = proprietaryRepository.findById(request.proprietaryId())
                 .orElseThrow(() -> new RuntimeException("Proprietary not found with ID: " + request.proprietaryId()));
 
+        // Lógica de Validação do Código na Edição
+        String novoCodigo;
+        if (request.topo() != null) {
+            novoCodigo = request.topo().toString();
+        } else {
+            novoCodigo = equipment.getCodigo();
+        }
+
+        if (repository.existsByCodigoAndIdNot(novoCodigo, id)) {
+            throw new RuntimeException("Este Tombo/Código já está em uso por outro equipamento.");
+        }
+        equipment.setCodigo(novoCodigo);
+
         equipment.update(
                 request.name(),
                 request.description(),
@@ -131,6 +151,7 @@ public class EquipamentServiceImpl implements EquipamentService {
         );
         equipment.setCategoria(request.categoria());
         equipment.clearPerParts();
+
         if (request.perParts() != null) {
             request.perParts().forEach(partDto ->
                     equipment.addPerPart(partDto.name(), partDto.serialNumber())
@@ -194,9 +215,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 (e.getStatus() != null && e.getStatus().getStatusType() != null)
                         ? e.getStatus().getStatusType().getName()
                         : "Sem Status",
-                e.getPerParts() != null ? e.getPerParts().stream()
-                        .map(part -> new PerPartResponse(part.getId(), part.getName(), part.getSerialNumber()))
-                        .collect(Collectors.toList()) : java.util.Set.of(),
+                java.util.Set.of(),
                 e.getImageUrls()
         ));
     }
@@ -223,8 +242,19 @@ public class EquipamentServiceImpl implements EquipamentService {
                 (e.getStatus() != null && e.getStatus().getStatusType() != null)
                         ? e.getStatus().getStatusType().getName()
                         : "Sem Status",
-                java.util.Set.of(), // Vazio pois removemos os acessórios da lista
+                java.util.Set.of(),
                 e.getImageUrls()
         ));
+    }
+
+    private String gerarCodigoUnico() {
+        String codigoGerado;
+        Random random = new Random();
+        do {
+            int numero = random.nextInt(999) + 1;
+            codigoGerado = String.format("%03d", numero);
+        } while (repository.existsByCodigo(codigoGerado));
+
+        return codigoGerado;
     }
 }

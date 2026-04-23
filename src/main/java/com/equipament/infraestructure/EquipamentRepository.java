@@ -13,7 +13,15 @@ import java.util.UUID;
 
 public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
 
+    // --- VALIDAÇÕES DE UNICIDADE ---
+
     boolean existsByTopo(Long topo);
+
+    boolean existsByCodigo(String codigo);
+
+    boolean existsByCodigoAndIdNot(String codigo, UUID id);
+
+    // --- BUSCAS DETALHADAS ---
 
     @Query("""
         SELECT e FROM Equipament e
@@ -35,7 +43,7 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         LEFT JOIN FETCH e.imageUrls iu
         WHERE e.active = true
         AND (:proprietaryId IS NULL OR p.id = :proprietaryId)
-        AND (:disponivel = false OR st.name = 'Disponível')
+        AND (:disponivel = false OR st.name = 'DISPONIVEL')
         ORDER BY e.dateHour DESC
     """,
             countQuery = """
@@ -44,7 +52,7 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         LEFT JOIN s.statusType st 
         WHERE e.active = true 
         AND (:proprietaryId IS NULL OR e.proprietary.id = :proprietaryId) 
-        AND (:disponivel = false OR st.name = 'Disponível')
+        AND (:disponivel = false OR st.name = 'DISPONIVEL')
     """)
     Page<Equipament> findAllDetailed(
             @Param("proprietaryId") UUID proprietaryId,
@@ -60,16 +68,15 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         LEFT JOIN FETCH e.perParts pp
         LEFT JOIN FETCH e.imageUrls iu
         WHERE e.active = true
-    AND (
-        LOWER(e.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
-        LOWER(e.categoria) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
-        CAST(e.topo AS string) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+        AND (
+            LOWER(e.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+            LOWER(e.categoria) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+            LOWER(e.codigo) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+            CAST(e.topo AS string) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
         )
         ORDER BY e.name ASC
     """)
     Page<Equipament> searchEquipments(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-// ... seus imports e métodos anteriores (existsByTopo, findDetailById, etc) ...
 
     @Query(value = """
         SELECT DISTINCT e FROM Equipament e
@@ -80,7 +87,11 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         WHERE (e.active = true)
         AND (:nome IS NULL OR :nome = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%'))) 
         AND (:categoria IS NULL OR :categoria = '' OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%'))) 
-        AND (:tombo IS NULL OR :tombo = '' OR CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%')) 
+        AND (
+            :tombo IS NULL OR :tombo = '' OR 
+            CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%') OR 
+            LOWER(e.codigo) LIKE LOWER(CONCAT('%', :tombo, '%'))
+        ) 
         AND (:caracteristicas IS NULL OR :caracteristicas = '' OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%'))) 
         AND (:status IS NULL OR :status = '' OR st.name = :status) 
         AND (CAST(:dataInicio AS date) IS NULL OR CAST(e.dateHour AS date) >= :dataInicio) 
@@ -93,9 +104,13 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         WHERE (e.active = true)
         AND (:nome IS NULL OR :nome = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%'))) 
         AND (:categoria IS NULL OR :categoria = '' OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%'))) 
-        AND (:tombo IS NULL OR :tombo = '' OR CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%')) 
+        AND (
+            :tombo IS NULL OR :tombo = '' OR 
+            CAST(e.topo AS string) LIKE CONCAT('%', :tombo, '%') OR 
+            LOWER(e.codigo) LIKE LOWER(CONCAT('%', :tombo, '%'))
+        ) 
         AND (:caracteristicas IS NULL OR :caracteristicas = '' OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%'))) 
-        AND (:status IS NULL OR :status = '' OR st.name = :status) 
+        AND (:status IS NULL OR :status = '' OR LOWER(st.name) = LOWER(:status))
         AND (CAST(:dataInicio AS date) IS NULL OR CAST(e.dateHour AS date) >= :dataInicio) 
         AND (CAST(:dataFim AS date) IS NULL OR CAST(e.dateHour AS date) <= :dataFim)
     """)

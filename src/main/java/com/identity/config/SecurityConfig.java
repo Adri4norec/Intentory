@@ -47,13 +47,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
 
-                        // O SEGREDO: Libera TODAS as rotas e sub-rotas de equipamentos para quem estiver logado
+                        // Libera rotas e sub-rotas de equipamentos para quem estiver logaod
                         .requestMatchers("/api/v1/equipments/**").authenticated()
+
+                        // Libera rotas e sub-rotas de proprietários para quem estiver logado
+                        .requestMatchers("/api/v1/proprietaries/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        // OBRIGATÓRIO: Avisa o Spring para ler as 'roles' do seu token
+                        // Avisa o Spring para ler as 'roles' do seu token
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(customConverter()))
                 );
 
