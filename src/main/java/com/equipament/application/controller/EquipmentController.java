@@ -5,6 +5,7 @@ import com.equipament.application.dto.EquipamentResponse;
 import com.equipament.application.mapper.EquipamentMapper;
 import com.equipament.domain.model.Equipament;
 import com.equipament.domain.service.EquipamentService;
+import com.equipament.domain.service.LoanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import java.util.UUID;
 public class EquipmentController {
 
     private final EquipamentService equipmentService;
+    private final LoanService loanService;
     private final EquipamentMapper equipmentMapper;
 
     @PostMapping

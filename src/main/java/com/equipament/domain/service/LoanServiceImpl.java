@@ -49,10 +49,12 @@ public class LoanServiceImpl implements LoanService {
         UserEntity collaborator = userRepository.findById(request.colaboradorId())
                 .orElseThrow(() -> new RuntimeException("Colaborador não encontrado"));
 
+        UserEntity tecnico = null;
+
         Loan loan = Loan.createPreparation(
                 equipament,
+                tecnico,
                 collaborator,
-                null,
                 request.loanDate(),
                 request.helpdeskTicket(),
                 request.observation()

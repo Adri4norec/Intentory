@@ -59,6 +59,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 request.name(),
                 request.description(),
                 request.topo(),
+                request.categoria(),
                 request.dateHour(),
                 request.usageType(),
                 proprietary

@@ -24,7 +24,7 @@ public class Loan {
     private UserEntity collaborator;
 
     @ManyToOne
-    @JoinColumn(name = "tecnico_id", nullable = false)
+    @JoinColumn(name = "tecnico_id", nullable = true)
     private UserEntity tecnico;
 
     private LocalDateTime loanDate;

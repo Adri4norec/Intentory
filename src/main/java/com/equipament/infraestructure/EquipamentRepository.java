@@ -130,7 +130,6 @@ public interface EquipamentRepository extends JpaRepository<Equipament, UUID> {
         SELECT e FROM Equipament e
         LEFT JOIN FETCH e.status s
         LEFT JOIN FETCH s.statusType st
-        LEFT JOIN FETCH e.categoria c
         WHERE CAST(e.topo AS string) = :topo OR e.codigo = :topo
         """)
     Optional<Equipament> findByTopo(@Param("topo") String topo);

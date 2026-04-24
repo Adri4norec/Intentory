@@ -50,6 +50,7 @@ public class Equipament {
             String name,
             String description,
             Long topo,
+            String categoria,
             LocalDateTime dateHour,
             EquipmentUsage usageType,
             Proprietary proprietary
@@ -117,6 +118,10 @@ public class Equipament {
         if (this.perParts != null) {
             this.perParts.clear();
         }
+    }
+
+    public void atualizarStatus(Status novoStatus) {
+        this.status = novoStatus;
     }
 
     public UUID getId() { return id; }
