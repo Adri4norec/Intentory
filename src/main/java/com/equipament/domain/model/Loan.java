@@ -1,7 +1,7 @@
 package com.equipament.domain.model;
 
 import com.equipament.domain.enums.LoanStatus;
-import com.user.domain.model.User;
+import com.identity.domain.UserEntity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -21,11 +21,11 @@ public class Loan {
 
     @ManyToOne
     @JoinColumn(name = "collaborator_id", nullable = false)
-    private User collaborator;
+    private UserEntity collaborator;
 
     @ManyToOne
     @JoinColumn(name = "tecnico_id", nullable = false)
-    private User tecnico;
+    private UserEntity tecnico;
 
     private LocalDateTime loanDate;
     private LocalDateTime returnDate;
@@ -38,14 +38,31 @@ public class Loan {
 
     private String observation;
 
+    protected Loan() {
+    }
+
+    public static Loan createPreparation(Equipament equipment, UserEntity tecnico, UserEntity collaborator,
+                                         LocalDateTime loanDate, String helpdeskTicket, String observation) {
+        Loan loan = new Loan();
+        loan.equipment = equipment;
+        loan.tecnico = tecnico;
+        loan.collaborator = collaborator;
+        loan.loanDate = loanDate;
+        loan.helpdeskTicket = helpdeskTicket;
+        loan.observation = observation;
+        loan.status = LoanStatus.PREPARACAO;
+        return loan;
+    }
+
     public UUID getId() { return id; }
     public Equipament getEquipment() { return equipment; }
-    public User getCollaborator() { return collaborator; }
-    public User getTecnico() { return tecnico; }
+    public UserEntity getCollaborator() { return collaborator; }
+    public UserEntity getTecnico() { return tecnico; }
     public LocalDateTime getLoanDate() { return loanDate; }
     public LocalDateTime getReturnDate() { return returnDate; }
     public LocalDateTime getExpectedReturnDate() { return expectedReturnDate; }
     public String getHelpdeskTicket() { return helpdeskTicket; }
     public LoanStatus getStatus() { return status; }
     public String getObservation() { return observation; }
+
 }
