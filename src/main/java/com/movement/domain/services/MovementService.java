@@ -1,7 +1,7 @@
-package com.moviment.domain.services;
+package com.movement.domain.services;
 
-import com.moviment.application.dto.MovementRequest;
-import com.moviment.application.dto.MovementResponse;
+import com.movement.application.dto.MovementRequest;
+import com.movement.application.dto.MovementResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;

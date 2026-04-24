@@ -1,4 +1,4 @@
-package com.moviment.domain.enums;
+package com.movement.domain.enums;
 
 public enum MovementType {
     SAIDA,

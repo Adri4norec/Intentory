@@ -1,6 +1,6 @@
-package com.moviment.application.dto;
+package com.movement.application.dto;
 
-import com.moviment.domain.enums.MovementType;
+import com.movement.domain.enums.MovementType;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -14,6 +14,7 @@ public record MovementResponse(
         String responsavel,
         String local,
         String observacao,
+        String justification,
         LocalDateTime dataHora,
         Set<String> imageUrls
 ) {}

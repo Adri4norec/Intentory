@@ -16,7 +16,6 @@ public class Equipament {
     private String description;
     private Long topo;
 
-    // NOVO CAMPO ADICIONADO AQUI
     @Column(name = "codigo", unique = true)
     private String codigo;
 
@@ -59,7 +58,7 @@ public class Equipament {
         this.name = name;
         this.description = description;
         this.topo = topo;
-        this.categoria = categoria; // Nota: Isso ficará nulo aqui, mas o seu Service já usa setCategoria() logo depois, então funciona perfeitamente.
+        this.categoria = categoria;
         this.dateHour = dateHour != null ? dateHour : LocalDateTime.now();
         this.usageType = usageType;
         this.proprietary = proprietary;

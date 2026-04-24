@@ -1,13 +1,13 @@
-package com.moviment.domain.services;
+package com.movement.domain.services;
 
-import com.moviment.application.dto.MovementRequest;
-import com.moviment.application.dto.MovementResponse;
-import com.moviment.domain.enums.MovementType;
+import com.movement.application.dto.MovementRequest;
+import com.movement.application.dto.MovementResponse;
+import com.movement.domain.enums.MovementType;
 import com.equipament.domain.model.Equipament;
-import com.moviment.domain.model.Movement;
+import com.movement.domain.model.Movement;
 import com.equipament.domain.model.StatusType;
 import com.equipament.infraestructure.EquipamentRepository;
-import com.moviment.infraestructure.MovementRepository;
+import com.movement.infraestructure.MovementRepository;
 import com.equipament.infraestructure.StatusTypeRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +42,43 @@ public class MovementServiceImpl implements MovementService {
         this.statusTypeRepository = statusTypeRepository;
     }
 
+//    @Override
+//    @Transactional
+//    public MovementResponse save(MovementRequest request) {
+//        Equipament equipament = equipamentRepository.findDetailById(request.equipamentId())
+//                .orElseThrow(() -> new RuntimeException("Equipamento não encontrado"));
+//
+//        String statusAtual = equipament.getStatus().getStatusType().getName();
+//
+//        validateStateTransition(request.movementType(), statusAtual);
+//
+//        String localFinal = request.local();
+//        if (request.movementType() == MovementType.ENTRADA) {
+//            localFinal = "Suporte";
+//        }
+//
+//        if (request.movementType() == MovementType.DESCARTE &&
+//                (request.observacao() == null || request.observacao().isBlank())) {
+//            throw new RuntimeException("Para movimentações de Descarte, a observação com o motivo técnico é obrigatória.");
+//        }
+//
+//        Movement movement = new Movement(
+//                equipament,
+//                request.movementType(),
+//                request.justification(),
+//                request.projeto(),
+//                request.responsavel(),
+//                localFinal,
+//                request.observacao()
+//        );
+//
+//        updateEquipamentStatus(equipament, request.movementType());
+//
+//        Movement savedMovement = repository.save(movement);
+//
+//        return mapToResponse(savedMovement);
+//    }
+
     @Override
     @Transactional
     public MovementResponse save(MovementRequest request) {
@@ -52,19 +89,25 @@ public class MovementServiceImpl implements MovementService {
 
         validateStateTransition(request.movementType(), statusAtual);
 
+        if (request.movementType() == MovementType.DESCARTE) {
+            if (request.justification() == null || request.justification().isBlank()) {
+                throw new RuntimeException("Para movimentações de Descarte, a justificativa (Sucata, Doação ou Sinistro) é obrigatória.");
+            }
+
+            if (request.observacao() == null || request.observacao().isBlank()) {
+                throw new RuntimeException("Para movimentações de Descarte, a observação com o motivo técnico é obrigatória.");
+            }
+        }
+
         String localFinal = request.local();
         if (request.movementType() == MovementType.ENTRADA) {
             localFinal = "Suporte";
         }
 
-        if (request.movementType() == MovementType.DESCARTE &&
-                (request.observacao() == null || request.observacao().isBlank())) {
-            throw new RuntimeException("Para movimentações de Descarte, a observação com o motivo técnico é obrigatória.");
-        }
-
         Movement movement = new Movement(
                 equipament,
                 request.movementType(),
+                request.justification(),
                 request.projeto(),
                 request.responsavel(),
                 localFinal,
@@ -74,7 +117,6 @@ public class MovementServiceImpl implements MovementService {
         updateEquipamentStatus(equipament, request.movementType());
 
         Movement savedMovement = repository.save(movement);
-
         return mapToResponse(savedMovement);
     }
 
@@ -124,30 +166,36 @@ public class MovementServiceImpl implements MovementService {
     }
 
     private void validateStateTransition(MovementType movimento, String statusAtual) {
-        String status = statusAtual.trim();
+        if (statusAtual == null) {
+            throw new RuntimeException("O equipamento não possui um status definido.");
+        }
+
+        // Normaliza para maiúsculo e remove espaços nas extremidades para bater com o banco
+        String s = statusAtual.trim().toUpperCase();
 
         switch (movimento) {
             case SAIDA -> {
-                if (!status.equalsIgnoreCase("Disponível")) {
-                    throw new RuntimeException("Saída permitida apenas para equipamentos Disponíveis.");
+                if (!s.equals("DISPONIVEL")) {
+                    throw new RuntimeException("Saída permitida apenas para equipamentos DISPONIVEL. Status atual: " + statusAtual);
                 }
             }
             case ENTRADA -> {
-                // Permite entrada se estiver em uso, manutenção ou mesmo disponível (reposição)
-                if (!status.equalsIgnoreCase("Em Uso") &&
-                        !status.equalsIgnoreCase("Em manutenção") &&
-                        !status.equalsIgnoreCase("Disponível")) {
-                    throw new RuntimeException("Status atual não permite Entrada: " + status);
+                boolean podeEntrar = s.equals("EM_USO") || s.equals("EM_MANUTENCAO") || s.equals("DISPONIVEL");
+                if (!podeEntrar) {
+                    throw new RuntimeException("Status atual não permite Entrada: " + statusAtual);
                 }
             }
             case MANUTENCAO -> {
-                if (!status.equalsIgnoreCase("Disponível") && !status.equalsIgnoreCase("Em Uso")) {
-                    throw new RuntimeException("Manutenção permitida apenas para equipamentos Disponíveis ou Em Uso.");
+                boolean podeManutencao = s.equals("DISPONIVEL") || s.equals("EM_USO");
+                if (!podeManutencao) {
+                    throw new RuntimeException("Manutenção permitida apenas para DISPONIVEL ou EM_USO. Status atual: " + statusAtual);
                 }
             }
             case DESCARTE -> {
-                if (!status.equalsIgnoreCase("Disponível") && !status.equalsIgnoreCase("Em manutenção")) {
-                    throw new RuntimeException("Descarte permitido apenas para equipamentos Disponíveis ou em Manutenção.");
+                // No seu banco é DISPONIVEL e EM_MANUTENCAO
+                boolean podeDescartar = s.equals("DISPONIVEL") || s.equals("EM_MANUTENCAO");
+                if (!podeDescartar) {
+                    throw new RuntimeException("Descarte permitido apenas para equipamentos DISPONIVEL ou EM_MANUTENCAO. Status atual: " + statusAtual);
                 }
             }
         }
@@ -155,14 +203,14 @@ public class MovementServiceImpl implements MovementService {
 
     private void updateEquipamentStatus(Equipament equipament, MovementType movimento) {
         String novoNomeStatus = switch (movimento) {
-            case SAIDA -> "Em Uso";
-            case ENTRADA -> "Disponível";
-            case MANUTENCAO -> "Em manutenção";
-            case DESCARTE -> "Indisponível";
+            case SAIDA -> "EM_USO";
+            case ENTRADA -> "DISPONIVEL";
+            case MANUTENCAO -> "EM_MANUTENCAO";
+            case DESCARTE -> "INDISPONIVEL";
         };
 
         StatusType newType = statusTypeRepository.findByName(novoNomeStatus)
-                .orElseThrow(() -> new RuntimeException("Tipo de Status '" + novoNomeStatus + "' não configurado no banco."));
+                .orElseThrow(() -> new RuntimeException("Status " + novoNomeStatus + " não encontrado no banco."));
 
         equipament.getStatus().updateStatus(newType, novoNomeStatus);
     }
@@ -176,6 +224,7 @@ public class MovementServiceImpl implements MovementService {
                 m.getProjeto(),
                 m.getResponsavel(),
                 m.getLocal(),
+                m.getJustification(),
                 m.getObservacao(),
                 m.getDataHora(),
                 m.getImageUrls()

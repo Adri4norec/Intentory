@@ -1,6 +1,6 @@
-package com.moviment.infraestructure;
+package com.movement.infraestructure;
 
-import com.moviment.domain.model.Movement;
+import com.movement.domain.model.Movement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

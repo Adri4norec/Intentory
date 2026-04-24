@@ -1,8 +1,8 @@
-package com.moviment.application.controllers;
+package com.movement.application.controllers;
 
-import com.moviment.application.dto.MovementRequest;
-import com.moviment.application.dto.MovementResponse;
-import com.moviment.domain.services.MovementService;
+import com.movement.application.dto.MovementRequest;
+import com.movement.application.dto.MovementResponse;
+import com.movement.domain.services.MovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

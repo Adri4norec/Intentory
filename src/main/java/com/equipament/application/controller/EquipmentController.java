@@ -30,7 +30,6 @@ public class EquipmentController {
     private final EquipamentMapper equipmentMapper;
 
     @PostMapping
-    //@PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<EquipamentResponse> create(@RequestBody @Valid EquipamentRequest request) {
         Equipament equipment = equipmentService.save(request);
         EquipamentResponse response = equipmentMapper.toResponse(equipment);
@@ -58,7 +57,6 @@ public class EquipmentController {
     }
 
     @PutMapping("/{id}")
-    //@PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<EquipamentResponse> update(@PathVariable UUID id, @RequestBody EquipamentRequest request) {
         Equipament equipment = equipmentService.update(id, request);
         EquipamentResponse response = equipmentMapper.toResponse(equipment);
@@ -68,7 +66,6 @@ public class EquipmentController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    //@PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public void delete(@PathVariable UUID id) {
         equipmentService.delete(id);
     }
@@ -80,12 +77,6 @@ public class EquipmentController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<Page<EquipamentResponse>> search(@RequestParam String term, Pageable pageable
-    ) {
-        Page<EquipamentResponse> response = equipmentService.search(term, pageable);
-        return ResponseEntity.ok(response);
-    }
     @GetMapping("/advanced-search")
     public ResponseEntity<Page<EquipamentResponse>> advancedSearch(
             @RequestParam(required = false) String nome,

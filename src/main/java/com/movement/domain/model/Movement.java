@@ -1,7 +1,7 @@
-package com.moviment.domain.model;
+package com.movement.domain.model;
 
 import com.equipament.domain.model.Equipament;
-import com.moviment.domain.enums.MovementType;
+import com.movement.domain.enums.MovementType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,6 +20,9 @@ public class Movement {
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_movimento", nullable = false)
     private MovementType movementType;
+
+    @Column(name = "justification")
+    private String justification;
 
     private String projeto;
     private String responsavel;
@@ -40,6 +43,7 @@ public class Movement {
     public Movement(
             Equipament equipament,
             MovementType movementType,
+            String justification,
             String projeto,
             String responsavel,
             String local,
@@ -48,8 +52,10 @@ public class Movement {
         this.id = UUID.randomUUID();
         this.equipament = equipament;
         this.movementType = movementType;
+        this.justification = justification;
         this.projeto = projeto;
         this.responsavel = responsavel;
+        this.local = local;
         this.dataHora = LocalDateTime.now();
         this.observacao = observacao;
     }
@@ -86,6 +92,7 @@ public class Movement {
     public String getResponsavel() { return responsavel; }
     public String getLocal() { return local; }
     public String getObservacao() { return observacao; }
+    public String getJustification() { return justification; }
     public LocalDateTime getDataHora() { return dataHora; }
     public java.util.Set<String> getImageUrls() { return imageUrls; }
 }
