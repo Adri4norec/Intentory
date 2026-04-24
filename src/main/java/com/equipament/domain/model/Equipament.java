@@ -2,6 +2,8 @@ package com.equipament.domain.model;
 
 import com.equipament.domain.enums.EquipmentUsage;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -34,11 +36,13 @@ public class Equipament {
     private Proprietary proprietary;
 
     @OneToMany(mappedBy = "equipament", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20) // <--- ADICIONE AQUI
     private Set<PerPart> perParts = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "tb_equipament_images", joinColumns = @JoinColumn(name = "equipament_id"))
     @Column(name = "image_url")
+    @BatchSize(size = 20) // <--- ADICIONE AQUI TAMBÉM (Essencial para ElementCollection)
     private Set<String> imageUrls = new HashSet<>();
 
     @OneToOne(mappedBy = "equipament", cascade = CascadeType.ALL)
