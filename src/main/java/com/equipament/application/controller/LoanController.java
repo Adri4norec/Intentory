@@ -57,4 +57,9 @@ public class LoanController {
 
         return ResponseEntity.ok(responsePage);
     }
+
+    @GetMapping("/search-users")
+    public ResponseEntity<List<UserSearchResponse>> searchUsers(@RequestParam("nome") String nome) {
+        return ResponseEntity.ok(loanService.searchUsersByName(nome));
+    }
 }
