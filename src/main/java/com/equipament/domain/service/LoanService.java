@@ -17,7 +17,6 @@ public interface LoanService {
     EquipmentLoanResponse findByCodeToLoan(String topo);
     Loan saveLoanPreparation(LoanRequest request);
 
-    // --- ADICIONE ESTAS DUAS LINHAS ---
     void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request);
     void registerReturn(UUID loanId);
 }
