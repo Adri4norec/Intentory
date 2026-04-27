@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.HashSet;
 
 @Entity
-@Table(name = "tb_user")
+@Table(name = "tb_user", schema = "dbo")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,7 +18,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
     @Column(unique = true, nullable = false)

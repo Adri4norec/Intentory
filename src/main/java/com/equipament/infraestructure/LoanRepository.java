@@ -30,23 +30,6 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
     """)
     List<LoanListResponse> findAllLoansWithDetails();
 
-//    @Query("""
-//    SELECT l FROM Loan l
-//    JOIN FETCH l.equipament e
-//    WHERE (:nome IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :nome, '%')))
-//      AND (:categoria IS NULL OR LOWER(e.categoria) LIKE LOWER(CONCAT('%', :categoria, '%')))
-//      AND (:tombo IS NULL OR CAST(e.topo AS string) = :tombo OR e.codigo = :tombo)
-//      AND (:caracteristicas IS NULL OR LOWER(e.description) LIKE LOWER(CONCAT('%', :caracteristicas, '%')))
-//      AND (:status IS NULL OR CAST(l.status AS string) = :status)
-//    """)
-//    Page<Loan> searchAdvanced(
-//            @Param("nome") String nome,
-//            @Param("categoria") String categoria,
-//            @Param("tombo") String tombo,
-//            @Param("caracteristicas") String caracteristicas,
-//            @Param("status") String status,
-//            Pageable pageable);
-
     @Query("""
     SELECT new com.equipament.application.dto.LoanListResponse(
         COALESCE(l.id, e.id),

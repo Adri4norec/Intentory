@@ -2,7 +2,6 @@ package com.equipament.domain.service;
 
 import com.equipament.application.dto.EquipamentRequest;
 import com.equipament.application.dto.EquipamentResponse;
-import com.equipament.application.dto.PerPartResponse;
 import com.equipament.domain.model.Equipament;
 import com.equipament.domain.model.Proprietary;
 import com.equipament.domain.model.Status;
@@ -107,7 +106,7 @@ public class EquipamentServiceImpl implements EquipamentService {
                 (e.getStatus() != null && e.getStatus().getStatusType() != null)
                         ? e.getStatus().getStatusType().getName()
                         : "Sem Status",
-                java.util.Set.of(), // Blindagem contra LazyInitializationException na listagem
+                java.util.Set.of(),
                 e.getImageUrls()
         ));
     }

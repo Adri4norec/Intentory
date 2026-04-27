@@ -8,11 +8,13 @@ import com.equipament.domain.enums.EquipmentUsage;
 import com.equipament.domain.enums.LoanStatus;
 import com.equipament.domain.model.Equipament;
 import com.equipament.domain.model.Loan;
-import com.equipament.domain.model.Status; // Import necessário para devolução
+import com.equipament.domain.model.Status;
 import com.equipament.infraestructure.EquipamentRepository;
 import com.equipament.infraestructure.LoanRepository;
 import com.identity.domain.UserEntity;
 import com.identity.infrastructure.UserRepository;
+import com.user.application.dto.UserResponse;
+import com.user.application.dto.UserSearchResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -128,8 +130,6 @@ public class LoanServiceImpl implements LoanService {
         return loanRepository.save(loan);
     }
 
-    // --- NOVOS MÉTODOS ADICIONADOS ABAIXO ---
-
     @Override
     @Transactional
     public void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request) {
@@ -175,7 +175,6 @@ public class LoanServiceImpl implements LoanService {
 
         equipamentRepository.save(equipament);
     }
-    // --- FIM DOS NOVOS MÉTODOS ---
 
     private void validateEquipmentEligibility(Equipament equipament) {
         if (!"COLABORADOR".equalsIgnoreCase(equipament.getUsageType().name())) {
@@ -191,5 +190,14 @@ public class LoanServiceImpl implements LoanService {
         if (!"DISPONIVEL".equals(currentStatus)) {
             throw new RuntimeException("Equipamento já está em uso ou preparação.");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserSearchResponse> searchUsersByName(String nome) {
+        return userRepository.findByNameContainingIgnoreCase(nome)
+                .stream()
+                .map(u -> new UserSearchResponse(u.getId(), u.getFullName()))
+                .collect(Collectors.toList());
     }
 }

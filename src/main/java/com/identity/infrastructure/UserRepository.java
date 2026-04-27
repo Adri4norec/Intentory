@@ -2,7 +2,11 @@ package com.identity.infrastructure;
 
 import com.identity.domain.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,4 +18,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     // Útil para validações de cadastro (Sign-up)
     boolean existsByEmail(String email);
+
+    @Query("SELECT u FROM UserEntity u WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%'))")
+    List<UserEntity> findByNameContainingIgnoreCase(@Param("name") String name);
 }

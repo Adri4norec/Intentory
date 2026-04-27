@@ -4,6 +4,7 @@ import com.equipament.application.dto.EquipmentLoanResponse;
 import com.equipament.application.dto.LoanListResponse;
 import com.equipament.application.dto.LoanRequest;
 import com.equipament.domain.service.LoanService;
+import com.user.application.dto.UserSearchResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -53,5 +54,10 @@ public class LoanController {
                 nome, categoria, tombo, caracteristicas, status, pageable);
 
         return ResponseEntity.ok(responsePage);
+    }
+
+    @GetMapping("/users/search")
+    public ResponseEntity<List<UserSearchResponse>> searchUsers(@RequestParam String nome) {
+        return ResponseEntity.ok(loanService.searchUsersByName(nome));
     }
 }
