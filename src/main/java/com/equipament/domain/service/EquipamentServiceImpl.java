@@ -66,7 +66,6 @@ public class EquipamentServiceImpl implements EquipamentService {
         );
         equipment.setCategoria(request.categoria());
 
-        // Lógica de Geração e Validação do Código
         String codigoDefinitivo;
         if (request.topo() != null) {
             codigoDefinitivo = request.topo().toString();
@@ -128,7 +127,6 @@ public class EquipamentServiceImpl implements EquipamentService {
         Proprietary proprietary = proprietaryRepository.findById(request.proprietaryId())
                 .orElseThrow(() -> new RuntimeException("Proprietary not found with ID: " + request.proprietaryId()));
 
-        // Lógica de Validação do Código na Edição
         String novoCodigo;
         if (request.topo() != null) {
             novoCodigo = request.topo().toString();

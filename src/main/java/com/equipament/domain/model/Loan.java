@@ -17,7 +17,7 @@ public class Loan {
 
     @ManyToOne
     @JoinColumn(name = "equipment_id", nullable = false)
-    private Equipament equipment;
+    private Equipament equipament;
 
     @ManyToOne
     @JoinColumn(name = "collaborator_id", nullable = false)
@@ -41,10 +41,10 @@ public class Loan {
     protected Loan() {
     }
 
-    public static Loan createPreparation(Equipament equipment, UserEntity tecnico, UserEntity collaborator,
+    public static Loan createPreparation(Equipament equipament, UserEntity tecnico, UserEntity collaborator,
                                          LocalDateTime loanDate, String helpdeskTicket, String observation) {
         Loan loan = new Loan();
-        loan.equipment = equipment;
+        loan.equipament = equipament;
         loan.tecnico = tecnico;
         loan.collaborator = collaborator;
         loan.loanDate = loanDate;
@@ -55,7 +55,7 @@ public class Loan {
     }
 
     public UUID getId() { return id; }
-    public Equipament getEquipment() { return equipment; }
+    public Equipament getEquipament() { return equipament; }
     public UserEntity getCollaborator() { return collaborator; }
     public UserEntity getTecnico() { return tecnico; }
     public LocalDateTime getLoanDate() { return loanDate; }
