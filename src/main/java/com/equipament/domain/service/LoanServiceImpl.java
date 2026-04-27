@@ -3,10 +3,12 @@ package com.equipament.domain.service;
 import com.equipament.application.dto.EquipmentLoanResponse;
 import com.equipament.application.dto.LoanListResponse;
 import com.equipament.application.dto.LoanRequest;
+import com.equipament.application.dto.UpdateLoanStatusRequest;
 import com.equipament.domain.enums.EquipmentUsage;
 import com.equipament.domain.enums.LoanStatus;
 import com.equipament.domain.model.Equipament;
 import com.equipament.domain.model.Loan;
+import com.equipament.domain.model.Status; // Import necessário para devolução
 import com.equipament.infraestructure.EquipamentRepository;
 import com.equipament.infraestructure.LoanRepository;
 import com.identity.domain.UserEntity;
@@ -29,7 +31,6 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final EquipamentRepository equipamentRepository;
     private final UserRepository userRepository;
-
 
     @Override
     @Transactional(readOnly = true)
@@ -81,7 +82,6 @@ public class LoanServiceImpl implements LoanService {
     public Page<LoanListResponse> advancedSearch(String nome, String categoria, String tombo,
                                                  String caracteristicas, String status,
                                                  Pageable pageable) {
-
         return loanRepository.searchAdvanced(nome, categoria, tombo, caracteristicas, status, pageable);
     }
 
@@ -127,6 +127,55 @@ public class LoanServiceImpl implements LoanService {
 
         return loanRepository.save(loan);
     }
+
+    // --- NOVOS MÉTODOS ADICIONADOS ABAIXO ---
+
+    @Override
+    @Transactional
+    public void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado para o ID: " + loanId));
+
+        LoanStatus newStatusEnum;
+        try {
+            newStatusEnum = LoanStatus.valueOf(request.newStatus().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Status de transição inválido: " + request.newStatus());
+        }
+
+        // Utiliza o método da Entidade que você configurou para validar a transição
+        loan.changeStatus(newStatusEnum);
+        loanRepository.save(loan);
+    }
+
+    @Override
+    @Transactional
+    public void registerReturn(UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado para o ID: " + loanId));
+
+        if (loan.getStatus() == LoanStatus.DEVOLVIDO) { // Ajuste para EMPRESTIMO_FINALIZADO se for o caso do seu fluxo atual
+            throw new RuntimeException("Este empréstimo já consta como devolvido.");
+        }
+
+        // 1. Encerra o ciclo do empréstimo na tabela tb_loan
+        loan.changeStatus(LoanStatus.DEVOLVIDO); // Ou EMPRESTIMO_FINALIZADO
+        loanRepository.save(loan);
+
+        // 2. Libera o equipamento para novos empréstimos
+        Equipament equipament = loan.getEquipament();
+        Status currentStatus = equipament.getStatus();
+
+        if (currentStatus != null) {
+            // Reutilizamos o StatusType existente, mas alteramos a string de status para liberar a máquina
+            currentStatus.updateStatus(currentStatus.getStatusType(), "DISPONIVEL");
+        } else {
+            throw new RuntimeException("O equipamento não possui um registro de status inicial válido.");
+        }
+
+        equipamentRepository.save(equipament);
+    }
+    // --- FIM DOS NOVOS MÉTODOS ---
 
     private void validateEquipmentEligibility(Equipament equipament) {
         if (!"COLABORADOR".equalsIgnoreCase(equipament.getUsageType().name())) {

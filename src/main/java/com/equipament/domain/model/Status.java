@@ -36,4 +36,8 @@ public class Status {
     public String getStatus() { return status; }
     public Equipament getEquipament() { return equipament;}
     public StatusType getStatusType() { return statusType; }
+
+    public void setEquipament(Equipament equipament) {
+        this.equipament = equipament;
+    }
 }

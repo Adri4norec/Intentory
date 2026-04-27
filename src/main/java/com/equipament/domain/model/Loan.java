@@ -65,4 +65,17 @@ public class Loan {
     public LoanStatus getStatus() { return status; }
     public String getObservation() { return observation; }
 
+    public void changeStatus(LoanStatus newStatus) {
+        if (this.status == LoanStatus.EMPRESTIMO_FINALIZADO) {
+            throw new IllegalStateException("O processo de empréstimo já foi concluído e não pode retroceder.");
+        }
+
+        this.status = newStatus;
+
+        // Marca a data exata em que o equipamento foi fisicamente entregue ao colaborador
+        if (newStatus == LoanStatus.EMPRESTIMO_FINALIZADO) {
+            this.loanDate = LocalDateTime.now();
+        }
+    }
+
 }
