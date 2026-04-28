@@ -39,7 +39,7 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
         e.description,
         CASE WHEN l.id IS NULL THEN 'DISPONIVEL' ELSE CAST(l.status AS string) END,
         l.loanDate,
-        l.expectedReturnDate
+        l.returnDate
     )
     FROM Equipament e
     LEFT JOIN Loan l ON l.equipament.id = e.id 

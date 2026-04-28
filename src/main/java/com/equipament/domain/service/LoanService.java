@@ -19,6 +19,7 @@ public interface LoanService {
     EquipmentLoanResponse findByCodeToLoan(String topo);
     Loan saveLoanPreparation(LoanRequest request);
     List<UserSearchResponse> searchUsersByName(String nome);
+    LoanListResponse getById(UUID loanId);
 
     void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request);
     void registerReturn(UUID loanId);

@@ -13,7 +13,6 @@ import com.equipament.infraestructure.EquipamentRepository;
 import com.equipament.infraestructure.LoanRepository;
 import com.identity.domain.UserEntity;
 import com.identity.infrastructure.UserRepository;
-import com.user.application.dto.UserResponse;
 import com.user.application.dto.UserSearchResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,6 +32,26 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final EquipamentRepository equipamentRepository;
     private final UserRepository userRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public LoanListResponse getById(UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
+
+        Equipament e = loan.getEquipament();
+
+        return new LoanListResponse(
+                loan.getId(),
+                String.valueOf(e.getTopo()),
+                e.getCategoria(),
+                e.getName(),
+                e.getDescription(),
+                loan.getStatus().name(),
+                loan.getLoanDate(),
+                loan.getReturnDate()
+        );
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -74,7 +93,7 @@ public class LoanServiceImpl implements LoanService {
                     e.getDescription(),
                     statusExibicao,
                     loan != null ? loan.getLoanDate() : null,
-                    loan != null ? loan.getExpectedReturnDate() : null
+                    loan != null ? loan.getReturnDate() : null
             );
         }).collect(Collectors.toList());
     }
@@ -123,6 +142,7 @@ public class LoanServiceImpl implements LoanService {
                 tecnico,
                 collaborator,
                 request.loanDate(),
+                request.returnDate(),
                 request.helpdeskTicket(),
                 request.observation()
         );
@@ -134,18 +154,31 @@ public class LoanServiceImpl implements LoanService {
     @Transactional
     public void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado para o ID: " + loanId));
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado"));
 
-        LoanStatus newStatusEnum;
-        try {
-            newStatusEnum = LoanStatus.valueOf(request.newStatus().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Status de transição inválido: " + request.newStatus());
-        }
+        LoanStatus newStatus = LoanStatus.valueOf(request.newStatus().toUpperCase());
 
-        // Utiliza o método da Entidade que você configurou para validar a transição
-        loan.changeStatus(newStatusEnum);
+        loan.changeStatus(newStatus);
+
+        atualizarStatusEquipamentoRelacionado(loan, newStatus);
+
         loanRepository.save(loan);
+    }
+
+    private void atualizarStatusEquipamentoRelacionado(Loan loan, LoanStatus novoStatus) {
+        String statusTexto = switch (novoStatus) {
+            case PREPARACAO -> "EM_PREPARACAO";
+            case PRONTO, AGUARDANDO_DOCUMENTACAO, AGUARDANDO_ASSINATURA -> "RESERVADO";
+            case AGUARDANDO_RETIRADA, EM_USO -> "EM_EMPRESTIMO";
+            case DEVOLVIDO, CANCELADO -> "DISPONIVEL";
+            case EMPRESTIMO_FINALIZADO -> "FINALIZADO";
+            default -> "OCUPADO";
+        };
+
+        loan.getEquipament().getStatus().updateStatus(
+                loan.getEquipament().getStatus().getStatusType(),
+                statusTexto
+        );
     }
 
     @Override
@@ -154,23 +187,18 @@ public class LoanServiceImpl implements LoanService {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado para o ID: " + loanId));
 
-        if (loan.getStatus() == LoanStatus.DEVOLVIDO) { // Ajuste para EMPRESTIMO_FINALIZADO se for o caso do seu fluxo atual
+        if (loan.getStatus() == LoanStatus.DEVOLVIDO) {
             throw new RuntimeException("Este empréstimo já consta como devolvido.");
         }
 
-        // 1. Encerra o ciclo do empréstimo na tabela tb_loan
-        loan.changeStatus(LoanStatus.DEVOLVIDO); // Ou EMPRESTIMO_FINALIZADO
+        loan.changeStatus(LoanStatus.DEVOLVIDO);
+
         loanRepository.save(loan);
 
-        // 2. Libera o equipamento para novos empréstimos
         Equipament equipament = loan.getEquipament();
         Status currentStatus = equipament.getStatus();
-
         if (currentStatus != null) {
-            // Reutilizamos o StatusType existente, mas alteramos a string de status para liberar a máquina
             currentStatus.updateStatus(currentStatus.getStatusType(), "DISPONIVEL");
-        } else {
-            throw new RuntimeException("O equipamento não possui um registro de status inicial válido.");
         }
 
         equipamentRepository.save(equipament);

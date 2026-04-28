@@ -1,9 +1,6 @@
 package com.equipament.application.controller;
 
-import com.equipament.application.dto.EquipmentLoanResponse;
-import com.equipament.application.dto.LoanListResponse;
-import com.equipament.application.dto.LoanRequest;
-import com.equipament.application.dto.UpdateLoanStatusRequest;
+import com.equipament.application.dto.*;
 import com.equipament.domain.service.LoanService;
 import com.user.application.dto.UserSearchResponse;
 import jakarta.validation.Valid;
@@ -25,10 +22,28 @@ public class LoanController {
 
     private final LoanService loanService;
 
+    @GetMapping("/{id}")
+    public ResponseEntity<LoanListResponse> getLoanById(@PathVariable UUID id) {
+        return ResponseEntity.ok(loanService.getById(id));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> updateStatus(
+            @PathVariable UUID id,
+            @RequestBody UpdateLoanStatusRequest request) {
+        loanService.updateLoanStatus(id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/return")
+    public ResponseEntity<Void> registerReturn(@PathVariable UUID id) {
+        loanService.registerReturn(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/loan/check/{topo}")
     public ResponseEntity<EquipmentLoanResponse> findByCodeToLoan(@PathVariable String topo) {
-        EquipmentLoanResponse response = loanService.findByCodeToLoan(topo);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(loanService.findByCodeToLoan(topo));
     }
 
     @PostMapping("/loan/prepare")
@@ -39,8 +54,7 @@ public class LoanController {
 
     @GetMapping
     public ResponseEntity<List<LoanListResponse>> listAll() {
-        List<LoanListResponse> response = loanService.listEquipmentsForLoanScreen();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(loanService.listEquipmentsForLoanScreen());
     }
 
     @GetMapping("/advanced-search")
@@ -51,11 +65,7 @@ public class LoanController {
             @RequestParam(required = false) String caracteristicas,
             @RequestParam(required = false) String status,
             Pageable pageable) {
-
-        Page<LoanListResponse> responsePage = loanService.advancedSearch(
-                nome, categoria, tombo, caracteristicas, status, pageable);
-
-        return ResponseEntity.ok(responsePage);
+        return ResponseEntity.ok(loanService.advancedSearch(nome, categoria, tombo, caracteristicas, status, pageable));
     }
 
     @GetMapping("/search-users")

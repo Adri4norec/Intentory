@@ -42,12 +42,13 @@ public class Loan {
     }
 
     public static Loan createPreparation(Equipament equipament, UserEntity tecnico, UserEntity collaborator,
-                                         LocalDateTime loanDate, String helpdeskTicket, String observation) {
+                                         LocalDateTime loanDate, LocalDateTime returnDate, String helpdeskTicket, String observation) {
         Loan loan = new Loan();
         loan.equipament = equipament;
         loan.tecnico = tecnico;
         loan.collaborator = collaborator;
         loan.loanDate = loanDate;
+        loan.returnDate = returnDate;
         loan.helpdeskTicket = helpdeskTicket;
         loan.observation = observation;
         loan.status = LoanStatus.PREPARACAO;
@@ -66,16 +67,18 @@ public class Loan {
     public String getObservation() { return observation; }
 
     public void changeStatus(LoanStatus newStatus) {
-        if (this.status == LoanStatus.EMPRESTIMO_FINALIZADO) {
-            throw new IllegalStateException("O processo de empréstimo já foi concluído e não pode retroceder.");
+        if (this.status == LoanStatus.EMPRESTIMO_FINALIZADO || this.status == LoanStatus.DEVOLVIDO) {
+            throw new IllegalStateException("Não é possível alterar o status de um empréstimo já finalizado.");
+        }
+
+        if (newStatus == LoanStatus.DEVOLVIDO) {
+            this.returnDate = LocalDateTime.now();
+        }
+
+        if (newStatus == LoanStatus.EM_USO) {
+            this.loanDate = LocalDateTime.now();
         }
 
         this.status = newStatus;
-
-        // Marca a data exata em que o equipamento foi fisicamente entregue ao colaborador
-        if (newStatus == LoanStatus.EMPRESTIMO_FINALIZADO) {
-            this.loanDate = LocalDateTime.now();
-        }
     }
-
 }

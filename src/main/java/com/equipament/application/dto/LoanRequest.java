@@ -8,5 +8,6 @@ public record LoanRequest(
         UUID colaboradorId,
         String helpdeskTicket,
         LocalDateTime loanDate,
+        LocalDateTime returnDate,
         String observation
 ) {}

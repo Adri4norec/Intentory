@@ -13,10 +13,8 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
-    // Método crucial para o CustomUserDetailsService localizar o usuário no login
     Optional<UserEntity> findByEmail(String email);
 
-    // Útil para validações de cadastro (Sign-up)
     boolean existsByEmail(String email);
 
     @Query("SELECT u FROM UserEntity u WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%'))")
