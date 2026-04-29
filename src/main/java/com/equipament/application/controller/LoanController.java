@@ -8,10 +8,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:4200")
@@ -50,6 +53,14 @@ public class LoanController {
     public ResponseEntity<Void> prepareLoan(@RequestBody @Valid LoanRequest request) {
         loanService.saveLoanPreparation(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping(value = "/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Set<String>> uploadDocuments(
+            @PathVariable UUID id,
+            @RequestParam("files") List<MultipartFile> files
+    ) {
+        return ResponseEntity.ok(loanService.uploadDocuments(id, files));
     }
 
     @GetMapping

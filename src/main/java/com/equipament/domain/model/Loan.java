@@ -5,6 +5,8 @@ import com.identity.domain.UserEntity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +40,11 @@ public class Loan {
 
     private String observation;
 
+    @ElementCollection
+    @CollectionTable(name = "tb_loan_documents", joinColumns = @JoinColumn(name = "loan_id"))
+    @Column(name = "document_url")
+    private Set<String> documentUrls = new HashSet<>();
+
     protected Loan() {
     }
 
@@ -65,6 +72,14 @@ public class Loan {
     public String getHelpdeskTicket() { return helpdeskTicket; }
     public LoanStatus getStatus() { return status; }
     public String getObservation() { return observation; }
+    public Set<String> getDocumentUrls() { return documentUrls; }
+
+    public void addDocumentUrl(String url) {
+        if (this.documentUrls == null) {
+            this.documentUrls = new HashSet<>();
+        }
+        this.documentUrls.add(url);
+    }
 
     public void changeStatus(LoanStatus newStatus) {
         if (this.status == LoanStatus.EMPRESTIMO_FINALIZADO || this.status == LoanStatus.DEVOLVIDO) {

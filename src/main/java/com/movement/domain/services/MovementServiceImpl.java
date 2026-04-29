@@ -42,47 +42,10 @@ public class MovementServiceImpl implements MovementService {
         this.statusTypeRepository = statusTypeRepository;
     }
 
-//    @Override
-//    @Transactional
-//    public MovementResponse save(MovementRequest request) {
-//        Equipament equipament = equipamentRepository.findDetailById(request.equipamentId())
-//                .orElseThrow(() -> new RuntimeException("Equipamento não encontrado"));
-//
-//        String statusAtual = equipament.getStatus().getStatusType().getName();
-//
-//        validateStateTransition(request.movementType(), statusAtual);
-//
-//        String localFinal = request.local();
-//        if (request.movementType() == MovementType.ENTRADA) {
-//            localFinal = "Suporte";
-//        }
-//
-//        if (request.movementType() == MovementType.DESCARTE &&
-//                (request.observacao() == null || request.observacao().isBlank())) {
-//            throw new RuntimeException("Para movimentações de Descarte, a observação com o motivo técnico é obrigatória.");
-//        }
-//
-//        Movement movement = new Movement(
-//                equipament,
-//                request.movementType(),
-//                request.justification(),
-//                request.projeto(),
-//                request.responsavel(),
-//                localFinal,
-//                request.observacao()
-//        );
-//
-//        updateEquipamentStatus(equipament, request.movementType());
-//
-//        Movement savedMovement = repository.save(movement);
-//
-//        return mapToResponse(savedMovement);
-//    }
-
     @Override
     @Transactional
     public MovementResponse save(MovementRequest request) {
-        Equipament equipament = equipamentRepository.findDetailById(request.equipamentId())
+        Equipament equipament = equipamentRepository.findById(request.equipamentId())
                 .orElseThrow(() -> new RuntimeException("Equipamento não encontrado"));
 
         String statusAtual = equipament.getStatus().getStatusType().getName();
@@ -91,18 +54,14 @@ public class MovementServiceImpl implements MovementService {
 
         if (request.movementType() == MovementType.DESCARTE) {
             if (request.justification() == null || request.justification().isBlank()) {
-                throw new RuntimeException("Para movimentações de Descarte, a justificativa (Sucata, Doação ou Sinistro) é obrigatória.");
+                throw new RuntimeException("Justificativa obrigatória para descarte.");
             }
-
             if (request.observacao() == null || request.observacao().isBlank()) {
-                throw new RuntimeException("Para movimentações de Descarte, a observação com o motivo técnico é obrigatória.");
+                throw new RuntimeException("Observação obrigatória para descarte.");
             }
         }
 
-        String localFinal = request.local();
-        if (request.movementType() == MovementType.ENTRADA) {
-            localFinal = "Suporte";
-        }
+        String localFinal = (request.movementType() == MovementType.ENTRADA) ? "Suporte" : request.local();
 
         Movement movement = new Movement(
                 equipament,
@@ -117,6 +76,7 @@ public class MovementServiceImpl implements MovementService {
         updateEquipamentStatus(equipament, request.movementType());
 
         Movement savedMovement = repository.save(movement);
+
         return mapToResponse(savedMovement);
     }
 
@@ -224,8 +184,8 @@ public class MovementServiceImpl implements MovementService {
                 m.getProjeto(),
                 m.getResponsavel(),
                 m.getLocal(),
-                m.getJustification(),
                 m.getObservacao(),
+                m.getJustification(),
                 m.getDataHora(),
                 m.getImageUrls()
         );

@@ -1,6 +1,8 @@
 package com.equipament.domain.model;
 
 import com.equipament.domain.enums.EquipmentUsage;
+import com.movement.domain.model.Movement;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.BatchSize;
 
@@ -36,17 +38,21 @@ public class Equipament {
     private Proprietary proprietary;
 
     @OneToMany(mappedBy = "equipament", cascade = CascadeType.ALL, orphanRemoval = true)
-    @BatchSize(size = 20) // <--- ADICIONE AQUI
+    @BatchSize(size = 20)
     private Set<PerPart> perParts = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "tb_equipament_images", joinColumns = @JoinColumn(name = "equipament_id"))
     @Column(name = "image_url")
-    @BatchSize(size = 20) // <--- ADICIONE AQUI TAMBÉM (Essencial para ElementCollection)
+    @BatchSize(size = 20)
     private Set<String> imageUrls = new HashSet<>();
 
     @OneToOne(mappedBy = "equipament", cascade = CascadeType.ALL)
     private Status status;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "equipament", fetch = FetchType.LAZY)
+    private List<Movement> movements = new ArrayList<>();
 
     protected Equipament() {}
 
@@ -140,10 +146,9 @@ public class Equipament {
     public Set<String> getImageUrls() { return imageUrls; }
     public Set<PerPart> getPerParts() { return perParts; }
     public String getCategoria() { return categoria; }
+    public List<Movement> getMovements() { return movements; }
 
     public void setCategoria(String categoria) { this.categoria = categoria;}
-
-    // GETTER E SETTER DO CÓDIGO
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
 }

@@ -15,13 +15,20 @@ import com.identity.domain.UserEntity;
 import com.identity.infrastructure.UserRepository;
 import com.user.application.dto.UserSearchResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -32,6 +39,9 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final EquipamentRepository equipamentRepository;
     private final UserRepository userRepository;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     @Override
     @Transactional(readOnly = true)
@@ -228,4 +238,151 @@ public class LoanServiceImpl implements LoanService {
                 .map(u -> new UserSearchResponse(u.getId(), u.getFullName()))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public Set<String> uploadDocuments(UUID loanId, List<MultipartFile> files) {
+
+        Loan loan = findLoanOrThrow(loanId);
+        validateFiles(files);
+
+        Path directoryPath = createDirectory(loanId);
+
+        for (MultipartFile file : files) {
+            if (isInvalidFile(file)) continue;
+
+            validatePdf(file);
+
+            String fileName = generateFileName(file);
+            Path filePath = directoryPath.resolve(fileName);
+
+            saveFile(file, filePath);
+
+            String relativeUrl = buildRelativeUrl(loanId, fileName);
+            loan.addDocumentUrl(relativeUrl);
+        }
+
+        loanRepository.save(loan);
+        return loan.getDocumentUrls();
+    }
+
+    private Loan findLoanOrThrow(UUID loanId) {
+        return loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
+    }
+
+    private void validateFiles(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new RuntimeException("Nenhum arquivo enviado.");
+        }
+    }
+
+    private boolean isInvalidFile(MultipartFile file) {
+        return file == null || file.isEmpty();
+    }
+
+    private Path createDirectory(UUID loanId) {
+        try {
+            Path path = Paths.get(uploadDir, "loans", loanId.toString(), "documents");
+
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
+            }
+
+            return path;
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao criar diretório", e);
+        }
+    }
+
+    private void validatePdf(MultipartFile file) {
+        String originalName = file.getOriginalFilename();
+
+        boolean isPdfByName = originalName != null && originalName.toLowerCase().endsWith(".pdf");
+        boolean isPdfByType = file.getContentType() != null &&
+                file.getContentType().equalsIgnoreCase("application/pdf");
+
+        if (!isPdfByName && !isPdfByType) {
+            throw new RuntimeException("Apenas arquivos PDF são permitidos. Arquivo inválido: " + originalName);
+        }
+    }
+
+    private String generateFileName(MultipartFile file) {
+
+        String originalName = file.getOriginalFilename() != null
+                ? file.getOriginalFilename()
+                : "document.pdf";
+
+        String safeName = sanitizeFileName(originalName);
+
+        if (!safeName.toLowerCase().endsWith(".pdf")) {
+            safeName += ".pdf";
+        }
+
+        return UUID.randomUUID() + "_" + safeName;
+    }
+
+    private String sanitizeFileName(String fileName) {
+        return fileName.replace("\\", "_").replace("/", "_");
+    }
+
+    private void saveFile(MultipartFile file, Path path) {
+        try {
+            Files.write(path, file.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao salvar arquivo", e);
+        }
+    }
+
+    private String buildRelativeUrl(UUID loanId, String fileName) {
+        return "loans/" + loanId + "/documents/" + fileName;
+    }
+
+//    @Override
+//    @Transactional
+//    public Set<String> uploadDocuments(UUID loanId, List<MultipartFile> files) {
+//        Loan loan = loanRepository.findById(loanId)
+//                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
+//
+//        if (files == null || files.isEmpty()) {
+//            throw new RuntimeException("Nenhum arquivo enviado.");
+//        }
+//
+//        try {
+//            Path directoryPath = Paths.get(uploadDir, "loans", loanId.toString(), "documents");
+//            if (!Files.exists(directoryPath)) {
+//                Files.createDirectories(directoryPath);
+//            }
+//
+//            for (MultipartFile file : files) {
+//                if (file == null || file.isEmpty()) {
+//                    continue;
+//                }
+//
+//                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document.pdf";
+//                boolean isPdfByName = originalName.toLowerCase().endsWith(".pdf");
+//                boolean isPdfByType = file.getContentType() != null && file.getContentType().equalsIgnoreCase("application/pdf");
+//                if (!isPdfByName && !isPdfByType) {
+//                    throw new RuntimeException("Apenas arquivos PDF são permitidos. Arquivo inválido: " + originalName);
+//                }
+//
+//                String safeOriginalName = originalName.replace("\\", "_").replace("/", "_");
+//                if (!safeOriginalName.toLowerCase().endsWith(".pdf")) {
+//                    safeOriginalName = safeOriginalName + ".pdf";
+//                }
+//
+//                String fileName = UUID.randomUUID() + "_" + safeOriginalName;
+//                Path filePath = directoryPath.resolve(fileName);
+//                Files.write(filePath, file.getBytes());
+//
+//                String relativeUrl = "loans/" + loanId + "/documents/" + fileName;
+//                loan.addDocumentUrl(relativeUrl);
+//            }
+//
+//            loanRepository.save(loan);
+//            return loan.getDocumentUrls();
+//        } catch (IOException e) {
+//            throw new RuntimeException("Erro ao processar arquivos PDF", e);
+//        }
+//    }
 }
