@@ -11,5 +11,8 @@ public record LoanListResponse(
         String description,
         String status,
         LocalDateTime loanDate,
-        LocalDateTime expectedReturnDate
+        LocalDateTime expectedReturnDate,
+        Boolean enviadoSedex,
+        LocalDateTime dataSedex,
+        Boolean hasLoanHistory
 ) {}

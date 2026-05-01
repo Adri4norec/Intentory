@@ -16,6 +16,7 @@ import java.util.UUID;
 
 public interface LoanService {
     List<LoanListResponse> listEquipmentsForLoanScreen();
+    List<LoanListResponse> listLoanHistory();
     Page<LoanListResponse> advancedSearch(String nome, String categoria, String tombo, String caracteristicas, String status, Pageable pageable);
     EquipmentLoanResponse findByCodeToLoan(String topo);
     Loan saveLoanPreparation(LoanRequest request);
@@ -26,4 +27,8 @@ public interface LoanService {
     void registerReturn(UUID loanId);
 
     Set<String> uploadDocuments(UUID loanId, List<MultipartFile> files);
+
+    LoanListResponse devolverSuporte(UUID loanId, List<MultipartFile> images);
+
+    LoanListResponse finalizarDevolucao(UUID loanId, MultipartFile termoBaixa);
 }

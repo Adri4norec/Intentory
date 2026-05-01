@@ -40,16 +40,28 @@ public class Loan {
 
     private String observation;
 
+    private Boolean enviadoSedex;
+    private LocalDateTime dataSedex;
+
     @ElementCollection
     @CollectionTable(name = "tb_loan_documents", joinColumns = @JoinColumn(name = "loan_id"))
     @Column(name = "document_url")
     private Set<String> documentUrls = new HashSet<>();
 
+    @ElementCollection
+    @CollectionTable(name = "tb_loan_return_images", joinColumns = @JoinColumn(name = "loan_id"))
+    @Column(name = "image_url")
+    private Set<String> returnImageUrls = new HashSet<>();
+
+    @Column(name = "termo_baixa_url")
+    private String termoBaixaUrl;
+
     protected Loan() {
     }
 
     public static Loan createPreparation(Equipament equipament, UserEntity tecnico, UserEntity collaborator,
-                                         LocalDateTime loanDate, LocalDateTime returnDate, String helpdeskTicket, String observation) {
+                                         LocalDateTime loanDate, LocalDateTime returnDate, String helpdeskTicket,
+                                         String observation, Boolean enviadoSedex, LocalDateTime dataSedex) {
         Loan loan = new Loan();
         loan.equipament = equipament;
         loan.tecnico = tecnico;
@@ -58,6 +70,8 @@ public class Loan {
         loan.returnDate = returnDate;
         loan.helpdeskTicket = helpdeskTicket;
         loan.observation = observation;
+        loan.enviadoSedex = enviadoSedex != null ? enviadoSedex : false;
+        loan.dataSedex = dataSedex;
         loan.status = LoanStatus.PREPARACAO;
         return loan;
     }
@@ -73,12 +87,33 @@ public class Loan {
     public LoanStatus getStatus() { return status; }
     public String getObservation() { return observation; }
     public Set<String> getDocumentUrls() { return documentUrls; }
+    public Set<String> getReturnImageUrls() { return returnImageUrls; }
+    public String getTermoBaixaUrl() { return termoBaixaUrl; }
+    public Boolean getEnviadoSedex() { return enviadoSedex; }
+    public LocalDateTime getDataSedex() { return dataSedex; }
 
     public void addDocumentUrl(String url) {
         if (this.documentUrls == null) {
             this.documentUrls = new HashSet<>();
         }
         this.documentUrls.add(url);
+    }
+
+    public void addReturnImageUrl(String url) {
+        if (this.returnImageUrls == null) {
+            this.returnImageUrls = new HashSet<>();
+        }
+        this.returnImageUrls.add(url);
+    }
+
+    public void clearReturnImageUrls() {
+        if (this.returnImageUrls != null) {
+            this.returnImageUrls.clear();
+        }
+    }
+
+    public void setTermoBaixaUrl(String termoBaixaUrl) {
+        this.termoBaixaUrl = termoBaixaUrl;
     }
 
     public void changeStatus(LoanStatus newStatus) {

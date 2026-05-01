@@ -63,8 +63,33 @@ public class LoanController {
         return ResponseEntity.ok(loanService.uploadDocuments(id, files));
     }
 
+    @PostMapping(value = "/devolver-suporte/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<LoanListResponse> devolverSuporte(
+            @PathVariable UUID id,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files
+    ) {
+        List<MultipartFile> payload = (images != null && !images.isEmpty()) ? images : files;
+        return ResponseEntity.ok(loanService.devolverSuporte(id, payload));
+    }
+
+    @PostMapping(value = "/finalizar-devolucao/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<LoanListResponse> finalizarDevolucao(
+            @PathVariable UUID id,
+            @RequestParam(value = "file", required = false) MultipartFile termoBaixa,
+            @RequestParam(value = "termoBaixa", required = false) MultipartFile termoBaixaAlt
+    ) {
+        MultipartFile payload = (termoBaixa != null && !termoBaixa.isEmpty()) ? termoBaixa : termoBaixaAlt;
+        return ResponseEntity.ok(loanService.finalizarDevolucao(id, payload));
+    }
+
     @GetMapping
     public ResponseEntity<List<LoanListResponse>> listAll() {
+        return ResponseEntity.ok(loanService.listLoanHistory());
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<LoanListResponse>> listAvailableForLoan() {
         return ResponseEntity.ok(loanService.listEquipmentsForLoanScreen());
     }
 

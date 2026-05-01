@@ -28,8 +28,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,53 +61,90 @@ public class LoanServiceImpl implements LoanService {
                 e.getDescription(),
                 loan.getStatus().name(),
                 loan.getLoanDate(),
-                loan.getReturnDate()
+                loan.getReturnDate(),
+                loan.getEnviadoSedex(),
+                loan.getDataSedex(),
+                true
         );
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<LoanListResponse> listEquipmentsForLoanScreen() {
-        List<Equipament> equipaments = equipamentRepository.findAll().stream()
-                .filter(e -> e.getUsageType() != null &&
-                        EquipmentUsage.COLABORADOR.equals(e.getUsageType()) &&
-                        e.getStatus() != null &&
-                        "DISPONIVEL".equalsIgnoreCase(e.getStatus().getStatus()))
-                .toList();
 
-        List<Loan> activeLoans = loanRepository.findAll().stream()
-                .filter(l -> l.getStatus() != LoanStatus.DEVOLVIDO &&
-                        l.getStatus() != LoanStatus.CANCELADO)
-                .toList();
+        List<Equipament> equipaments = findAvailableEquipmentsForLoan();
+        Map<UUID, Loan> loanMap = mapActiveLoansByEquipament();
+        Set<UUID> equipamentsWithAnyLoanHistory = mapEquipamentsWithAnyLoanHistory();
 
-        Map<UUID, Loan> loanMap = activeLoans.stream()
+        return equipaments.stream()
+                .map(e -> buildLoanListResponse(e, loanMap.get(e.getId()), equipamentsWithAnyLoanHistory.contains(e.getId())))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LoanListResponse> listLoanHistory() {
+        return loanRepository.findAllLoansWithDetails();
+    }
+
+    private List<Equipament> findAvailableEquipmentsForLoan() {
+        return equipamentRepository.findAll().stream()
+                .filter(this::isAvailableForLoan)
+                .toList();
+    }
+
+    private boolean isAvailableForLoan(Equipament e) {
+        return e.getUsageType() != null &&
+                EquipmentUsage.COLABORADOR.equals(e.getUsageType()) &&
+                e.getStatus() != null &&
+                "DISPONIVEL".equalsIgnoreCase(e.getStatus().getStatus());
+    }
+
+    private Map<UUID, Loan> mapActiveLoansByEquipament() {
+        return loanRepository.findAll().stream()
+                .filter(this::isActiveLoan)
                 .collect(Collectors.toMap(
                         l -> l.getEquipament().getId(),
                         l -> l,
                         (existing, replacement) -> existing
                 ));
+    }
 
-        return equipaments.stream().map(e -> {
-            Loan loan = loanMap.get(e.getId());
+    private Set<UUID> mapEquipamentsWithAnyLoanHistory() {
+        return loanRepository.findAll().stream()
+                .map(l -> l.getEquipament().getId())
+                .collect(Collectors.toCollection(HashSet::new));
+    }
 
-            String statusExibicao;
-            if (loan != null) {
-                statusExibicao = loan.getStatus().name();
-            } else {
-                statusExibicao = e.getStatus().getStatus();
-            }
+    private boolean isActiveLoan(Loan loan) {
+        return loan.getStatus() != LoanStatus.DEVOLVIDO &&
+                loan.getStatus() != LoanStatus.CANCELADO;
+    }
 
-            return new LoanListResponse(
-                    loan != null ? loan.getId() : e.getId(),
-                    String.valueOf(e.getTopo()),
-                    e.getCategoria(),
-                    e.getName(),
-                    e.getDescription(),
-                    statusExibicao,
-                    loan != null ? loan.getLoanDate() : null,
-                    loan != null ? loan.getReturnDate() : null
-            );
-        }).collect(Collectors.toList());
+    private LoanListResponse buildLoanListResponse(Equipament e, Loan loan, boolean hasLoanHistory) {
+
+        String statusExibicao = resolveStatus(e, loan);
+
+        return new LoanListResponse(
+                loan != null ? loan.getId() : e.getId(),
+                String.valueOf(e.getTopo()),
+                e.getCategoria(),
+                e.getName(),
+                e.getDescription(),
+                statusExibicao,
+                loan != null ? loan.getLoanDate() : null,
+                loan != null ? loan.getReturnDate() : null,
+                loan != null ? loan.getEnviadoSedex() : null,
+                loan != null ? loan.getDataSedex() : null,
+                loan != null || hasLoanHistory
+        );
+    }
+
+    private String resolveStatus(Equipament e, Loan loan) {
+        if (loan != null) {
+            return loan.getStatus().name();
+        }
+        return e.getStatus().getStatus();
     }
 
     @Override
@@ -154,7 +193,9 @@ public class LoanServiceImpl implements LoanService {
                 request.loanDate(),
                 request.returnDate(),
                 request.helpdeskTicket(),
-                request.observation()
+                request.observation(),
+                request.enviadoSedex(),
+                request.dataSedex()
         );
 
         return loanRepository.save(loan);
@@ -168,6 +209,14 @@ public class LoanServiceImpl implements LoanService {
 
         LoanStatus newStatus = LoanStatus.valueOf(request.newStatus().toUpperCase());
 
+        if (newStatus == LoanStatus.EM_DEVOLUCAO) {
+            throw new RuntimeException("Para iniciar devolução, utilize o endpoint /devolver-suporte/{id} enviando as fotos.");
+        }
+
+        if (newStatus == LoanStatus.DEVOLVIDO) {
+            throw new RuntimeException("Para finalizar devolução, utilize o endpoint /finalizar-devolucao/{id} enviando o Termo de Baixa (PDF).");
+        }
+
         loan.changeStatus(newStatus);
 
         atualizarStatusEquipamentoRelacionado(loan, newStatus);
@@ -180,6 +229,7 @@ public class LoanServiceImpl implements LoanService {
             case PREPARACAO -> "EM_PREPARACAO";
             case PRONTO, AGUARDANDO_DOCUMENTACAO, AGUARDANDO_ASSINATURA -> "RESERVADO";
             case AGUARDANDO_RETIRADA, EM_USO -> "EM_EMPRESTIMO";
+            case EM_DEVOLUCAO -> "EM_EMPRESTIMO";
             case DEVOLVIDO, CANCELADO -> "DISPONIVEL";
             case EMPRESTIMO_FINALIZADO -> "FINALIZADO";
             default -> "OCUPADO";
@@ -201,17 +251,15 @@ public class LoanServiceImpl implements LoanService {
             throw new RuntimeException("Este empréstimo já consta como devolvido.");
         }
 
-        loan.changeStatus(LoanStatus.DEVOLVIDO);
-
-        loanRepository.save(loan);
-
-        Equipament equipament = loan.getEquipament();
-        Status currentStatus = equipament.getStatus();
-        if (currentStatus != null) {
-            currentStatus.updateStatus(currentStatus.getStatusType(), "DISPONIVEL");
+        if (loan.getStatus() == LoanStatus.EM_USO) {
+            throw new RuntimeException("Para iniciar devolução, utilize /devolver-suporte/{id} enviando as fotos.");
         }
 
-        equipamentRepository.save(equipament);
+        if (loan.getStatus() == LoanStatus.EM_DEVOLUCAO) {
+            throw new RuntimeException("Para finalizar devolução, utilize /finalizar-devolucao/{id} enviando o Termo de Baixa (PDF).");
+        }
+
+        throw new RuntimeException("Status do empréstimo inválido para devolução por este endpoint.");
     }
 
     private void validateEquipmentEligibility(Equipament equipament) {
@@ -338,51 +386,141 @@ public class LoanServiceImpl implements LoanService {
         return "loans/" + loanId + "/documents/" + fileName;
     }
 
-//    @Override
-//    @Transactional
-//    public Set<String> uploadDocuments(UUID loanId, List<MultipartFile> files) {
-//        Loan loan = loanRepository.findById(loanId)
-//                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
-//
-//        if (files == null || files.isEmpty()) {
-//            throw new RuntimeException("Nenhum arquivo enviado.");
-//        }
-//
-//        try {
-//            Path directoryPath = Paths.get(uploadDir, "loans", loanId.toString(), "documents");
-//            if (!Files.exists(directoryPath)) {
-//                Files.createDirectories(directoryPath);
-//            }
-//
-//            for (MultipartFile file : files) {
-//                if (file == null || file.isEmpty()) {
-//                    continue;
-//                }
-//
-//                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document.pdf";
-//                boolean isPdfByName = originalName.toLowerCase().endsWith(".pdf");
-//                boolean isPdfByType = file.getContentType() != null && file.getContentType().equalsIgnoreCase("application/pdf");
-//                if (!isPdfByName && !isPdfByType) {
-//                    throw new RuntimeException("Apenas arquivos PDF são permitidos. Arquivo inválido: " + originalName);
-//                }
-//
-//                String safeOriginalName = originalName.replace("\\", "_").replace("/", "_");
-//                if (!safeOriginalName.toLowerCase().endsWith(".pdf")) {
-//                    safeOriginalName = safeOriginalName + ".pdf";
-//                }
-//
-//                String fileName = UUID.randomUUID() + "_" + safeOriginalName;
-//                Path filePath = directoryPath.resolve(fileName);
-//                Files.write(filePath, file.getBytes());
-//
-//                String relativeUrl = "loans/" + loanId + "/documents/" + fileName;
-//                loan.addDocumentUrl(relativeUrl);
-//            }
-//
-//            loanRepository.save(loan);
-//            return loan.getDocumentUrls();
-//        } catch (IOException e) {
-//            throw new RuntimeException("Erro ao processar arquivos PDF", e);
-//        }
-//    }
+    @Override
+    @Transactional
+    public LoanListResponse devolverSuporte(UUID loanId, List<MultipartFile> images) {
+
+        Loan loan = findLoanOrThrow(loanId);
+        validateLoanIsEmUso(loan);
+
+        List<MultipartFile> validImages = normalizeAndValidateAtLeastOne(images, "Nenhuma foto enviada.");
+
+        Path directoryPath = createDirectory(loanId, "return-images");
+
+        loan.clearReturnImageUrls();
+        Equipament equipament = loan.getEquipament();
+        equipament.clearImageUrls();
+
+        for (MultipartFile file : validImages) {
+            String fileName = generateImageFileName(file);
+            Path filePath = directoryPath.resolve(fileName);
+
+            saveFile(file, filePath);
+
+            String relativeUrl = buildRelativeUrl(loanId, "return-images", fileName);
+            loan.addReturnImageUrl(relativeUrl);
+            equipament.addImageUrl(relativeUrl);
+        }
+
+        loan.changeStatus(LoanStatus.EM_DEVOLUCAO);
+
+        loanRepository.save(loan);
+        equipamentRepository.save(equipament);
+
+        return buildLoanListResponseFromLoan(loan);
+    }
+
+    @Override
+    @Transactional
+    public LoanListResponse finalizarDevolucao(UUID loanId, MultipartFile termoBaixa) {
+
+        Loan loan = findLoanOrThrow(loanId);
+
+        if (loan.getStatus() != LoanStatus.EM_DEVOLUCAO) {
+            throw new RuntimeException("Operação permitida apenas para empréstimos EM_DEVOLUCAO.");
+        }
+
+        if (termoBaixa == null || termoBaixa.isEmpty()) {
+            throw new RuntimeException("Termo de Baixa (PDF) é obrigatório.");
+        }
+
+        validatePdf(termoBaixa);
+
+        Path directoryPath = createDirectory(loanId, "termo-baixa");
+        String fileName = generateFileName(termoBaixa);
+        Path filePath = directoryPath.resolve(fileName);
+
+        saveFile(termoBaixa, filePath);
+
+        String relativeUrl = buildRelativeUrl(loanId, "termo-baixa", fileName);
+        loan.setTermoBaixaUrl(relativeUrl);
+
+        loan.changeStatus(LoanStatus.DEVOLVIDO);
+
+        Equipament equipament = loan.getEquipament();
+        Status currentStatus = equipament.getStatus();
+        if (currentStatus != null) {
+            currentStatus.updateStatus(currentStatus.getStatusType(), "DISPONIVEL");
+        }
+
+        loanRepository.save(loan);
+        equipamentRepository.save(equipament);
+
+        return buildLoanListResponseFromLoan(loan);
+    }
+
+    private void validateLoanIsEmUso(Loan loan) {
+        if (loan.getStatus() != LoanStatus.EM_USO) {
+            throw new RuntimeException("Operação permitida apenas para empréstimos EM_USO.");
+        }
+    }
+
+    private List<MultipartFile> normalizeAndValidateAtLeastOne(List<MultipartFile> files, String emptyMessage) {
+        if (files == null) {
+            throw new RuntimeException(emptyMessage);
+        }
+
+        List<MultipartFile> valid = files.stream()
+                .filter(Objects::nonNull)
+                .filter(f -> !f.isEmpty())
+                .collect(Collectors.toList());
+
+        if (valid.isEmpty()) {
+            throw new RuntimeException(emptyMessage);
+        }
+
+        return valid;
+    }
+
+    private Path createDirectory(UUID loanId, String subfolder) {
+        try {
+            Path path = Paths.get(uploadDir, "loans", loanId.toString(), subfolder);
+
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
+            }
+
+            return path;
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao criar diretório", e);
+        }
+    }
+
+    private String buildRelativeUrl(UUID loanId, String subfolder, String fileName) {
+        return "loans/" + loanId + "/" + subfolder + "/" + fileName;
+    }
+
+    private String generateImageFileName(MultipartFile file) {
+        String originalName = file.getOriginalFilename();
+        String safeName = originalName != null ? sanitizeFileName(originalName) : "image";
+        return UUID.randomUUID() + "_" + safeName;
+    }
+
+    private LoanListResponse buildLoanListResponseFromLoan(Loan loan) {
+        Equipament e = loan.getEquipament();
+
+        return new LoanListResponse(
+                loan.getId(),
+                String.valueOf(e.getTopo()),
+                e.getCategoria(),
+                e.getName(),
+                e.getDescription(),
+                loan.getStatus().name(),
+                loan.getLoanDate(),
+                loan.getReturnDate(),
+                loan.getEnviadoSedex(),
+                loan.getDataSedex(),
+                true
+        );
+    }
 }

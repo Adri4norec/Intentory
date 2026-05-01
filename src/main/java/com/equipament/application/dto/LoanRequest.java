@@ -9,5 +9,7 @@ public record LoanRequest(
         String helpdeskTicket,
         LocalDateTime loanDate,
         LocalDateTime returnDate,
-        String observation
+        String observation,
+        Boolean enviadoSedex,
+        LocalDateTime dataSedex
 ) {}
