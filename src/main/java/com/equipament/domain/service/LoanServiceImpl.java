@@ -6,11 +6,13 @@ import com.equipament.application.dto.LoanRequest;
 import com.equipament.application.dto.UpdateLoanStatusRequest;
 import com.equipament.domain.enums.EquipmentUsage;
 import com.equipament.domain.enums.LoanStatus;
+import com.equipament.domain.exception.LoanNotFoundException;
 import com.equipament.domain.model.Equipament;
 import com.equipament.domain.model.Loan;
 import com.equipament.domain.model.Status;
 import com.equipament.infraestructure.EquipamentRepository;
 import com.equipament.infraestructure.LoanRepository;
+import com.equipament.infraestructure.StatusTypeRepository;
 import com.identity.domain.UserEntity;
 import com.identity.infrastructure.UserRepository;
 import com.user.application.dto.UserSearchResponse;
@@ -41,6 +43,7 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final EquipamentRepository equipamentRepository;
     private final UserRepository userRepository;
+    private final StatusTypeRepository statusTypeRepository;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -49,7 +52,7 @@ public class LoanServiceImpl implements LoanService {
     @Transactional(readOnly = true)
     public LoanListResponse getById(UUID loanId) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
+                .orElseThrow(() -> new LoanNotFoundException(loanId));
 
         Equipament e = loan.getEquipament();
 
@@ -205,7 +208,7 @@ public class LoanServiceImpl implements LoanService {
     @Transactional
     public void updateLoanStatus(UUID loanId, UpdateLoanStatusRequest request) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado"));
+                .orElseThrow(() -> new LoanNotFoundException(loanId));
 
         LoanStatus newStatus = LoanStatus.valueOf(request.newStatus().toUpperCase());
 
@@ -225,27 +228,38 @@ public class LoanServiceImpl implements LoanService {
     }
 
     private void atualizarStatusEquipamentoRelacionado(Loan loan, LoanStatus novoStatus) {
-        String statusTexto = switch (novoStatus) {
-            case PREPARACAO -> "EM_PREPARACAO";
-            case PRONTO, AGUARDANDO_DOCUMENTACAO, AGUARDANDO_ASSINATURA -> "RESERVADO";
-            case AGUARDANDO_RETIRADA, EM_USO -> "EM_EMPRESTIMO";
-            case EM_DEVOLUCAO -> "EM_EMPRESTIMO";
-            case DEVOLVIDO, CANCELADO -> "DISPONIVEL";
-            case EMPRESTIMO_FINALIZADO -> "FINALIZADO";
-            default -> "OCUPADO";
-        };
+        String statusTypeName = mapLoanStatusToUniversalStatusTypeName(novoStatus);
 
-        loan.getEquipament().getStatus().updateStatus(
-                loan.getEquipament().getStatus().getStatusType(),
-                statusTexto
-        );
+        Equipament equipament = loan.getEquipament();
+        Status currentStatus = equipament.getStatus();
+        if (currentStatus == null) {
+            throw new RuntimeException("Equipamento não possui status vinculado (tb_status). Equipamento: " + equipament.getId());
+        }
+
+        var newType = statusTypeRepository.findByName(statusTypeName)
+                .orElseThrow(() -> new RuntimeException("StatusType " + statusTypeName + " não encontrado no banco."));
+
+        currentStatus.updateStatus(newType, newType.getName());
+        equipamentRepository.save(equipament);
+    }
+
+    private String mapLoanStatusToUniversalStatusTypeName(LoanStatus loanStatus) {
+        return switch (loanStatus) {
+            case PREPARACAO -> "EM_PREPARACAO";
+            case AGUARDANDO_ASSINATURA -> "AGUARDANDO_ASSINATURA";
+            case EM_USO -> "EM_USO";
+            case EM_DEVOLUCAO -> "EM_DEVOLUCAO";
+            case DEVOLVIDO, CANCELADO, EMPRESTIMO_FINALIZADO -> "DISPONIVEL";
+            case PRONTO, AGUARDANDO_RETIRADA, AGUARDANDO_DOCUMENTACAO -> "EM_PREPARACAO";
+            default -> "EM_PREPARACAO";
+        };
     }
 
     @Override
     @Transactional
     public void registerReturn(UUID loanId) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado para o ID: " + loanId));
+                .orElseThrow(() -> new LoanNotFoundException(loanId));
 
         if (loan.getStatus() == LoanStatus.DEVOLVIDO) {
             throw new RuntimeException("Este empréstimo já consta como devolvido.");
@@ -316,7 +330,7 @@ public class LoanServiceImpl implements LoanService {
 
     private Loan findLoanOrThrow(UUID loanId) {
         return loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado com o ID: " + loanId));
+                .orElseThrow(() -> new LoanNotFoundException(loanId));
     }
 
     private void validateFiles(List<MultipartFile> files) {
@@ -414,6 +428,8 @@ public class LoanServiceImpl implements LoanService {
 
         loan.changeStatus(LoanStatus.EM_DEVOLUCAO);
 
+        atualizarStatusEquipamentoRelacionado(loan, LoanStatus.EM_DEVOLUCAO);
+
         loanRepository.save(loan);
         equipamentRepository.save(equipament);
 
@@ -447,14 +463,9 @@ public class LoanServiceImpl implements LoanService {
 
         loan.changeStatus(LoanStatus.DEVOLVIDO);
 
-        Equipament equipament = loan.getEquipament();
-        Status currentStatus = equipament.getStatus();
-        if (currentStatus != null) {
-            currentStatus.updateStatus(currentStatus.getStatusType(), "DISPONIVEL");
-        }
+        atualizarStatusEquipamentoRelacionado(loan, LoanStatus.DEVOLVIDO);
 
         loanRepository.save(loan);
-        equipamentRepository.save(equipament);
 
         return buildLoanListResponseFromLoan(loan);
     }
